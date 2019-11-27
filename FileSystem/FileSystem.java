@@ -1,3 +1,12 @@
+// * Final Project 
+// * NAMES:  Camila Valdebenito
+// * CLASS: CSS 430B
+// *
+// * DESCRIPTION:
+// * This class   
+// *  
+// * ASSUMPTIONS:
+
 public class FileSystem {
   private SuperBlock superblock;
   private Directory directory;

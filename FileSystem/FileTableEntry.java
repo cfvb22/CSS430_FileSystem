@@ -1,3 +1,12 @@
+// * Final Project 
+// * NAMES:  Camila Valdebenito
+// * CLASS: CSS 430B
+// *
+// * DESCRIPTION:
+// * This class   
+// *  
+// * ASSUMPTIONS:
+
 public class FileTableEntry {          // Each table entry should have
    public int seekPtr;                 //    a file seek pointer
    public final Inode inode;           //    a reference to its inode

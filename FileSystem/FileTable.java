@@ -1,3 +1,12 @@
+// * Final Project 
+// * NAMES:  Camila Valdebenito
+// * CLASS: CSS 430B
+// *
+// * DESCRIPTION:
+// * This class   
+// *  
+// * ASSUMPTIONS:
+
 public class FileTable {
 
    private Vector table;         // the actual entity of this file table
