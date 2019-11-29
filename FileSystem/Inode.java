@@ -2,12 +2,13 @@ import javax.lang.model.util.ElementScanner6;
 
 /** ----------------------- Inode.java --------------------------
  * @author Jeffrey Murray Jr
+ * @author Camila Valdebenito
+ * @author Connor Riley Shabro
  * 
  * SUMMARY
  * Keeps track of which blocks are in the file (and their order)
  * Can Map an offest to a specific block
  * Direct Access to the disk itself
- * Called by FileSystem
  */
 
 public class Inode {
@@ -145,7 +146,7 @@ public class Inode {
    }
 // ---------------------------- addBlock ----------------------------
    /**
-    * Adds a freeblock to the iNode
+    * Adds a freeBlock to the iNode
     * @param freeBlock
     * @return successful/fail
     */
