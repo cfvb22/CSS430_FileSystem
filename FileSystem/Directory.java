@@ -1,3 +1,11 @@
+// * Final Project 
+// * NAMES:  Camila Valdebenito
+// * CLASS: CSS 430B
+// *
+// * DESCRIPTION:
+// * This class   
+// *  
+// * ASSUMPTIONS:
 public class Directory {
    private static int maxChars = 30; // max characters of each file name
 
