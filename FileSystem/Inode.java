@@ -113,7 +113,7 @@ public class Inode {
       indirect = SysLib.bytes2short(diskBlock, start);
 
       // Raw Write toDisk
-      SysLib.rawwrite(block, diskBlock);
+      SysLib.rawwrite(blockNum, diskBlock);
       return 0;
    }
 
@@ -173,7 +173,7 @@ public class Inode {
             
             // Increment through indirect block
             offset += 2;
-            blockId = SysLib.bytes2short(data, offset);
+            blockID = SysLib.bytes2short(data, offset);
          }
          // Assign indirect block with indirectData + free block
          SysLib.short2bytes(freeBlock, data, offset);
