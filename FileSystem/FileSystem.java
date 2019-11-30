@@ -85,30 +85,28 @@ public class FileSystem {
       switch(whence)
       {
          case SEEK_SET:
-            entry.seekPtr = offset;
+            ftEnt.seekPtr = offset;
          
          case SEEK_CUR:
-            entry.seekPtr += offset;
+            ftEnt.seekPtr += offset;
          
          case SEEK_END:
-            entry.seekPtr = offset + fsize[ftEnt];
+            ftEnt.seekPtr = offset + fsize[ftEnt];
          
          default:
             return -1;
       }
       
-      if(entry.seekPtr < 0) 
+      if(ftEnt.seekPtr < 0) 
       {
-         entry.seekPtr = 0;
+         ftEnt.seekPtr = 0;
       } 
-      else if (entry.seekPtr > fsize[ftEnt])
+      else if (ftEnt.seekPtr > fsize[ftEnt])
       { 
-         entry.seekPtr = fsize[ftEnt];
+         ftEnt.seekPtr = fsize[ftEnt];
       
       }
       
-      return entry.seekPtr;
-      
-   }
+      return ftEnt.seekPtr;
    }
 
