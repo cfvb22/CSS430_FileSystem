@@ -89,9 +89,9 @@ public class FileTable {
             else
             {
                // USED || UNUSED
-               if(inode.flag < USED)
+               if(inode.flag <= USED)
                {
-                  inode.flag = READ;
+                  inode.flag = WRITE;
                   break;
                }
                else
