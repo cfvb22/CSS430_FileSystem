@@ -18,13 +18,13 @@ public class FileSystem {
    public FileSystem( int diskBlock ) {
       // create superblock and format disk with 64 inodes in default
       superblock = new SuperBlock( diskBlocks );
-   
+
       // creat directory and register "/" in directory entry 0
       directory = new Directory( superblock.inodeBlocks );
-   
+
       // file table is created and stores directory in the file table
       filetable = new FileTable( directory );
-   
+
       // directory reconstruction
       FileTableEntry dirEnt = open( "/", "r" );
       int directorySize = fsize( dirEnt );
@@ -36,40 +36,60 @@ public class FileSystem {
       close( dirEnt );
    }
 
+//------------------------sync()-----------------------
+//This syncs the directory to the physical disk and then
+//syncs the superblock
    void sync(){
-   
+     //Temp gets the directory information
+     byte[] temp = directory.directory2bytes();
+
+     //all is from the root of the directory that we open
+     FileTableEntry all = open("/", "w");
+
+     //writes to all
+     write(all, directory.directory2bytes);
+
+     //closes all
+     close(all);
+
+     //This syncs the superblock
+     temp = new byte[superBlock.diskSize];
+     SysLib.int2bytes(freeList, temp, 8);
+     SysLib.int2bytes(totalBlocks, temp, 0);
+     SysLib.int2bytes(totalInodes, temp, 4);
+     SysLib.rawwrite(0, temp);
    }
 
    boolean format(int files){
-   
+
    }
 
    FileTableEntry open(String filename, String mode){
-   
+
    }
 
    boolean close(FileTableEntry ftEnt){
-   
+
    }
 
    int fsize(FileTableEntry ftEnt){
-   
+
    }
 
    int read(FileTableEntry ftEnt, byte[] buffer){
-   
+
    }
 
    int write(FileTableEntry ftEnt, byte[] buffer){
-   
+
    }
 
    private boolean deallocateAllBlocks(FileTableEntry ftEnt){
-   
+
    }
 
    boolean delete(String filename){
-   
+
    }
 
    private final int SEEK_SET = 0;
@@ -79,36 +99,35 @@ public class FileSystem {
     // Updates the seek pointer corresponding to fd as follows:
     // If whence is SEEK_SET (= 0), the file's seek pointer is set to offset bytes from the beginning of the file.
     // If whence is SEEK_CUR (= 1), the file's seek pointer is set to its current value plus the offset. The offset can be positive or negative.
-    // If whence is SEEK_END (= 2), the file's seek pointer is set to the size of the file plus the offset. The offset can be positive or negative. 
+    // If whence is SEEK_END (= 2), the file's seek pointer is set to the size of the file plus the offset. The offset can be positive or negative.
    public synchronized int seek(FileTableEntry ftEnt, int offset, int whence){
-      
+
       switch(whence)
       {
          case SEEK_SET:
             entry.seekPtr = offset;
-         
+
          case SEEK_CUR:
             entry.seekPtr += offset;
-         
+
          case SEEK_END:
             entry.seekPtr = offset + fsize[ftEnt];
-         
+
          default:
             return -1;
       }
-      
-      if(entry.seekPtr < 0) 
+
+      if(entry.seekPtr < 0)
       {
          entry.seekPtr = 0;
-      } 
-      else if (entry.seekPtr > fsize[ftEnt])
-      { 
-         entry.seekPtr = fsize[ftEnt];
-      
       }
-      
-      return entry.seekPtr;
-      
-   }
-   }
+      else if (entry.seekPtr > fsize[ftEnt])
+      {
+         entry.seekPtr = fsize[ftEnt];
 
+      }
+
+      return entry.seekPtr;
+
+   }
+   }
