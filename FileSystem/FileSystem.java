@@ -60,8 +60,20 @@ public class FileSystem {
      SysLib.rawwrite(0, temp);
    }
 
+   //--------------------format()---------------------------
+   //@params files:this will represent the amount of Inodes present
+   //@returns true if complete
+   //This formats the firectory, superblock, and filetable
    boolean format(int files){
-     
+     //format the superblock
+     superblock.format(files);
+
+     //formats directory based on totalInodes
+     directory = new Directory(superBlock.totalInodes);
+
+     //formats filetable based on directory
+     filetable = new FileTable(directory);
+     return true;
    }
 
    FileTableEntry open(String filename, String mode){
@@ -72,8 +84,14 @@ public class FileSystem {
 
    }
 
+   //----------------------fsize(FileTableEntry ftEnt)---------------------
+   //@params ftEnt: this the the FileTableEntry it will find the size of
+   //@returns length of FileTableEntry
    int fsize(FileTableEntry ftEnt){
-
+     //synchronized so that threads don't screw up the FileTableEntry
+     synchronized(ftEnt){
+       return ftEnt.inode.length;
+     }
    }
 
    int read(FileTableEntry ftEnt, byte[] buffer){
@@ -86,22 +104,22 @@ public class FileSystem {
 
    private boolean deallocateAllBlocks(FileTableEntry ftEnt)
    {
-      
-   
+
+
    }
 
-   // deletes the file specified by given fileName. 
-   // If the file is currently open, it is not destroyed 
+   // deletes the file specified by given fileName.
+   // If the file is currently open, it is not destroyed
    // until the last open on it is closed, but new attempts to open it will fail.
    public boolean delete(String filename)
    {
       FileTableEntry tcb = open(filename, "w"); // Grabs the iNode(aka tcb)
-      
+
       if(directory.ifree(tcb.iNumber) && close(tcb)) // frees iNode and closes successfully
       {
          return true;   // deletion successful
       }
-      
+
       return false;     // deletion unsuccessful
    }
 
