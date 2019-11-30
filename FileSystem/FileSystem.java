@@ -43,14 +43,14 @@ public class FileSystem {
      //Temp gets the directory information
      byte[] temp = directory.directory2bytes();
 
-     //all is from the root of the directory that we open
-     FileTableEntry all = open("/", "w");
+     //root is from the root of the directory that we open
+     FileTableEntry root = open("/", "w");
 
-     //writes to all
-     write(all, directory.directory2bytes);
+     //writes to root
+     write(root, directory.directory2bytes);
 
-     //closes all
-     close(all);
+     //closes root
+     close(root);
 
      //This syncs the superblock
      temp = new byte[superBlock.diskSize];
@@ -61,7 +61,7 @@ public class FileSystem {
    }
 
    boolean format(int files){
-
+     
    }
 
    FileTableEntry open(String filename, String mode){
