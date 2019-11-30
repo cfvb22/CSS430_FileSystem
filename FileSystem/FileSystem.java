@@ -76,12 +76,44 @@ public class FileSystem {
      return true;
    }
 
+   //---------------------open(String filename, String mode)
+   //@params filename and mode: filename is the name of the file you want to open
+   //mode is what mode you want to have while opening the file
+   //@returns null if you want to write to a file and the pointer associated is messed up
+   //returns true if successfully opens the file
    FileTableEntry open(String filename, String mode){
+     //creates a new FileTableEntry based on allocating the new file that is being opened
+      FileTableEntry ftEnt = filetable.falloc(filename, mode);
 
+      //if mode is write and it has a null pointer it returns null
+      if(mode == "w" && ftEnt.inode.count != 1)
+        return null;
+
+      //returns the FileTableEntry
+      return ftEnt;
    }
 
+   //---------------------close(FileTableEntry ftEnt)-------------------
+   //@params ftEnt: FileTableEntry that you want to close
+   //@returns true or false based on if a FileTableEntry was closed
+   //This is to close a FileTableEntry
    boolean close(FileTableEntry ftEnt){
+     //if the ftEnt is null we don't wanna break the system and return false
+     if(ftEnt == null)
+      return false;
+     else{
+       //Does synchronized so multiple values don't overlap
+       synchronized(ftEnt){
 
+         //lowers count by one
+         ftEnt.count -= 1;
+
+         //if FileTableEntry count is 0 that means we free it from the file table and no matter what return true
+         if(ftEnt.count == 0)
+          return filetable.ffree(ftEnt);
+         return true;
+       }
+     }
    }
 
    //----------------------fsize(FileTableEntry ftEnt)---------------------
