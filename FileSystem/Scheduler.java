@@ -1,15 +1,4 @@
 
-/** ----------------------- FileSystem.java --------------------------
- * @author Connor Riley Shabro
- * @author Jeffrey Murray Jr
- * @author Camila Valdebenito
-// *
-// * DESCRIPTION:
-// * This class
-// * 
-// *  
-// * ASSUMPTIONS: Assumes that the user has access to ThreadOS
-*/
 import java.util.*;
 
 public class Scheduler extends Thread
