@@ -1,5 +1,5 @@
 
-/** ----------------------- FileSystem.java --------------------------
+/** ----------------------- FileTableEntry.java --------------------------
  * @author Connor Riley Shabro
  * @author Jeffrey Murray Jr
  * @author Camila Valdebenito
