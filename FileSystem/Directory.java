@@ -4,9 +4,10 @@
  * @author Jeffrey Murray Jr
 // *
 // * DESCRIPTION:
-// * This class   
+// * This class stores and maintains the files.
+// * 
 // *  
-// * ASSUMPTIONS:
+// * ASSUMPTIONS: Assumes that the user has access to ThreadOS
 // */
 public class Directory 
 {
@@ -61,27 +62,61 @@ public class Directory
          offset += MAX_BYTES;
       }
       
-      printDir();
+      //printDir();
       return 1;
        
    }
 
- //   // converts and return Directory information into a plain byte array
-//    // this byte array will be written back to disk
-//    // note: only meaningfull directory information should be converted
-//    // into bytes.
-//    public byte[] directory2bytes( ) 
-//    {
-//       //byte[] directory = new byter[directorySize * ]
+   // converts and return Directory information into a plain byte array
+   // this byte array will be written back to disk
+   // note: only meaningfull directory information should be converted
+   // into bytes.
+   public byte[] directory2bytes( ) 
+   {
+      byte[] directory = new byte[directorySize * 64]; // 64 total inodes 
+      int offset = 0;
+      
+      for(int i = 0; i < directorySize; i++) 
+      {
+         SysLib.int2bytes(fsize[i], directory, offset);
+         offset += 4; // block size for an int is 4 bytes      
+      }
+      
+      for(int i = 0; i < directorySize; i++) 
+      {
+         String fileName = new String(fnames[i], 0, fsize[i]);
+         byte [] data = fileName.getBytes();
+         System.arraycopy(data, 0, directory, offset, data.length);
+         offset += maxChars * 2;
+      }
+      
+      return directory;
+
+      
+   }
 // 
-//       
-//    }
-// 
-//    public short ialloc( String filename ) 
-//    {
 //       // filename is the one of a file to be created.
 //       // allocates a new inode number for this filename
-//    }
+   public short ialloc( String filename ) 
+   {
+      for(short i = 0; i < directorySize; i++) 
+      {
+         if(fsize[i] == 0)
+         {
+            // checks for edge case where filename is longer than 30 characters
+            // if it is, it will cap the filename to 30 characters
+            int fileLength = Math.min(filename.length(), maxChars);
+            for(int j = 0; j < fileLength; j++) 
+            {
+               fnames[i][j] = filename.charAt(j); 
+            }
+            fsize[i] = fileLength;
+            return i;
+         }
+      }
+      return -1;
+
+   }
 
    // deallocates this inumber (inode number)
    // the corresponding file will be deleted.
@@ -102,20 +137,35 @@ public class Directory
 
    }
    
- //   // returns the inumber corresponding to this filename
-//    public short namei( String filename ) 
-//    {
-//    
-//       
-//    }
-   
-   private void printDir(){
-     for (int i = 0; i < directorySize; i++){
-         SysLib.cout(i + ":  " + fsize[i] + " bytes - ");
-         for (int j = 0; j < maxChars; j++){
-             SysLib.cout(fnames[i][j] + " ");
+   // returns the inumber corresponding to this filename
+   public short namei( String filename ) 
+   {
+      for(short i = 0; i < fsize.length; i++) 
+      {
+         if(fsize[i] == filename.length()) 
+         {
+            String temp = new String(fnames[i], 0, fsize[i]);
+            
+            if(temp.compareTo(filename) == 0) 
+            {  
+               return i;
+            }
+         
          }
-         SysLib.cout("\n");
-     }
-    }
+      
+      }
+      
+      return -1;
+       
+   }
+   
+//    private void printDir(){
+//      for (int i = 0; i < directorySize; i++){
+//          SysLib.cout(i + ":  " + fsize[i] + " bytes - ");
+//          for (int j = 0; j < maxChars; j++){
+//              SysLib.cout(fnames[i][j] + " ");
+//          }
+//          SysLib.cout("\n");
+//      }
+//     }
 }
