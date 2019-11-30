@@ -1,3 +1,14 @@
+/** ----------------------- FileTableEntry.java --------------------------
+ * @author Jeffrey Murray Jr
+ * @author Connor Riley Shabro
+ * @author Camila Valdebenito
+// *
+// * DESCRIPTION:
+// * This class
+// * 
+// *  
+// * ASSUMPTIONS: Assumes that the user has access to ThreadOS
+// */
 public class FileTableEntry {  // Each table entry should have
     public int seekPtr;        //    a file seek pointer
     public final Inode inode;  //    a reference to an inode

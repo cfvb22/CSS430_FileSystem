@@ -1,3 +1,17 @@
+
+/** ----------------------- Superblock.java --------------------------
+ * @author Connor Riley Shabro
+ * @author Jeffrey Murray Jr
+ * @author Camila Valdebenito
+// *
+// * DESCRIPTION:
+// * This class
+// * 
+// *  
+// * ASSUMPTIONS: Assumes that the user has access to ThreadOS
+
+*/
+
 class Superblock {
    public int totalBlocks; // the number of disk blocks
    public int totalInodes; // the number of inodes
