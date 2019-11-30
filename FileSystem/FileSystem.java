@@ -120,6 +120,10 @@ public class FileSystem {
    //@params ftEnt: this the the FileTableEntry it will find the size of
    //@returns length of FileTableEntry
    int fsize(FileTableEntry ftEnt){
+     //if it is null return -1
+     if(ftEnt == null)
+      return -1;
+
      //synchronized so that threads don't screw up the FileTableEntry
      synchronized(ftEnt){
        return ftEnt.inode.length;
@@ -131,12 +135,6 @@ public class FileSystem {
    }
 
    int write(FileTableEntry ftEnt, byte[] buffer){
-
-   }
-
-   private boolean deallocateAllBlocks(FileTableEntry ftEnt)
-   {
-
 
    }
 
