@@ -84,12 +84,25 @@ public class FileSystem {
 
    }
 
-   private boolean deallocateAllBlocks(FileTableEntry ftEnt){
-
+   private boolean deallocateAllBlocks(FileTableEntry ftEnt)
+   {
+      
+   
    }
 
-   boolean delete(String filename){
-
+   // deletes the file specified by given fileName. 
+   // If the file is currently open, it is not destroyed 
+   // until the last open on it is closed, but new attempts to open it will fail.
+   public boolean delete(String filename)
+   {
+      FileTableEntry tcb = open(filename, "w"); // Grabs the iNode(aka tcb)
+      
+      if(directory.ifree(tcb.iNumber) && close(tcb)) // frees iNode and closes successfully
+      {
+         return true;   // deletion successful
+      }
+      
+      return false;     // deletion unsuccessful
    }
 
    private final int SEEK_SET = 0;
