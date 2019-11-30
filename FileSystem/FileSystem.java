@@ -130,4 +130,28 @@ public class FileSystem {
       return entry.seekPtr;
 
    }
+            ftEnt.seekPtr = offset;
+
+         case SEEK_CUR:
+            ftEnt.seekPtr += offset;
+
+         case SEEK_END:
+            ftEnt.seekPtr = offset + fsize[ftEnt];
+
+         default:
+            return -1;
+      }
+
+      if(ftEnt.seekPtr < 0)
+      {
+         ftEnt.seekPtr = 0;
+      }
+      else if (ftEnt.seekPtr > fsize[ftEnt])
+      {
+         ftEnt.seekPtr = fsize[ftEnt];
+
+      }
+
+      return ftEnt.seekPtr;
+
    }
