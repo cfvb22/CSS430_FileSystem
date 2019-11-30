@@ -63,6 +63,38 @@ class SuperBlock {
      return -1;
    }
 
+//---------------------format(int numberOfBlock)------------------------------
+//@params numberofBlock: number of blocks which go to iNodes
+//This helps reset the superBlock so that it will match the physical disk and vice versa
+public void format(int numberOfBlock){
+  //totalInodes is changed to the numberOfBlock and the freeList is updated
+  //based on this new value
+  totalInodes = numberOfBlock;
+  freeList = 2 + (totalInodes / 16);
+
+  //Creates all new Inodes to be brought to disk based on total number of them
+  for(short i = 0; i < totalInodes; i++){
+    Inode temp = new Inode();
+    Inode.flag = 0;
+    Inode.toDisk(i);
+  }
+
+  //Based on freeList it writes the blocks handled by it
+  for(int i = freeList; i < totalBlocks; i++){
+    superBlock = new byte[diskSize];
+    SysLib.int2bytes(i+1, superBlock, 0);
+    SysLib.rawwrite(i, superBlock);
+  }
+
+  //This links all the variables back to int and writes the first block to the disk
+  //and aks like a clean new SuperBlock that matches the physical disk
+  superBlock = new byte[diskSize];
+  SysLib.int2bytes(freeList, superBlock, 8);
+  SysLib.int2bytes(totalInodes, superBlock, 4);
+  SysLib.int2bytes(totalBlocks, superBlock, 0);
+  SysLib.rawwrite(0, superBlock);
+}
+
 //------------------addBlock--------------------
 //adds a block back in once it is done being used and adds it to freeList
 //@params block : block your inserting
