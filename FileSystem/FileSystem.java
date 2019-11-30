@@ -1,11 +1,14 @@
-// * Final Project 
-// * NAMES:  Camila Valdebenito
-// * CLASS: CSS 430B
+/** ----------------------- FileSystem.java --------------------------
+ * @author Connor Riley Shabro
+ * @author Jeffrey Murray Jr
+ * @author Camila Valdebenito
 // *
 // * DESCRIPTION:
-// * This class   
+// * This class
+// * 
 // *  
-// * ASSUMPTIONS:
+// * ASSUMPTIONS: Assumes that the user has access to ThreadOS
+// */
 
 public class FileSystem {
   private SuperBlock superblock;
