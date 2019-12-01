@@ -137,7 +137,7 @@ public class FileSystem {
    int write(FileTableEntry ftEnt, byte[] buffer){
 
    }
-
+   //---------------------- boolean delete(String filename) ---------------------
    // deletes the file specified by given fileName.
    // If the file is currently open, it is not destroyed
    // until the last open on it is closed, but new attempts to open it will fail.
@@ -153,14 +153,15 @@ public class FileSystem {
       return false;     // deletion unsuccessful
    }
 
+   //---------------------- seek(FileTableEntry ftEnt, int offset, int whence) ---------------------
    private final int SEEK_SET = 0;
    private final int SEEK_CUR = 1;
    private final int SEEK_END = 2;
 
-    // Updates the seek pointer corresponding to fd as follows:
-    // If whence is SEEK_SET (= 0), the file's seek pointer is set to offset bytes from the beginning of the file.
-    // If whence is SEEK_CUR (= 1), the file's seek pointer is set to its current value plus the offset. The offset can be positive or negative.
-    // If whence is SEEK_END (= 2), the file's seek pointer is set to the size of the file plus the offset. The offset can be positive or negative.
+   // Updates the seek pointer corresponding to fd as follows:
+   // If whence is SEEK_SET (= 0), the file's seek pointer is set to offset bytes from the beginning of the file.
+   // If whence is SEEK_CUR (= 1), the file's seek pointer is set to its current value plus the offset. The offset can be positive or negative.
+   // If whence is SEEK_END (= 2), the file's seek pointer is set to the size of the file plus the offset. The offset can be positive or negative.
    public synchronized int seek(FileTableEntry ftEnt, int offset, int whence){
 
       switch(whence)
