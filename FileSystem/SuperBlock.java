@@ -99,9 +99,9 @@ public void format(int numberOfBlock){
 //adds a block back in once it is done being used and adds it to freeList
 //@params block : block your inserting
 //@returns: true or false
-   public synchronized boolean addBlock(int block){
+  public synchronized boolean addBlock(int block){
     //if the block is in range of the diskSize
-    if(block > 0 && block < diskSize){
+    if(block > 0 && block < diskSize) {
 
       //Creates new superBlock
       superBlock = new byte[diskSize];
@@ -120,4 +120,5 @@ public void format(int numberOfBlock){
     }
   //returns false
    return false;
+   }
 }

@@ -17,7 +17,7 @@ public class FileSystem {
 
    public FileSystem( int diskBlock ) {
       // create superblock and format disk with 64 inodes in default
-      superblock = new SuperBlock( diskBlocks );
+      superblock = new SuperBlock( diskBlock );
 
       // creat directory and register "/" in directory entry 0
       directory = new Directory( superblock.inodeBlocks );
@@ -28,7 +28,7 @@ public class FileSystem {
       // directory reconstruction
       FileTableEntry dirEnt = open( "/", "r" );
       int directorySize = fsize( dirEnt );
-      if( dirSize > 0) {
+      if( directorySize > 0) {
          byte[] dirData = new byte[directorySize];
          read( dirEnt, dirData );
          directory.bytes2directory( dirData );
@@ -129,8 +129,67 @@ public class FileSystem {
        return ftEnt.inode.length;
      }
    }
+   
+   // ---------------------- read(FileTableEntry ftEnt, byte[] buffer) --------------------------
+   // reads up to buffer.length bytes from the file indicated by ftEnt, starting at the position currently 
+   // pointed to by the seek pointer. If bytes remaining between the current seek pointer and the end of 
+   // file are less than buffer.length, SysLib.read reads as many bytes as possible,putting them into the 
+   // beginning of buffer. It increments the seek pointer by the number of bytes to have been read. 
+   // The return value is the number of bytes that have been read, or a negative value upon an error.
+   public synchronized int read(FileTableEntry ftEnt, byte[] buffer)
+   {
+      int blockSize = 512;
+      int size = buffer.length;
+      int fileLength = fsize(ftEnt);
+      int bytesLeft = 0;
+      int bytesRead = 0;
+      
+      // checks for reading errors
+      if(ftEnt.mode == "a"|| ftEnt.mode == "w" || buffer == null) 
+      {
+         return -1;
+      }
+      
+      while(ftEnt.seekPtr < fileLength && size > 0) 
+      {
+         // retrieves the block number
+         int blockNum = ftEnt.inode.getBlockIndex(ftEnt.seekPtr);
+         
+         if(blockNum == -1) // checks for invalid blockNum/ block location
+         {
+            break;
+         }
+         byte[] data = new byte[blockSize];
+         SysLib.rawread(blockNum, data); 
+       
+          int dataOffset = ftEnt.seekPtr % blockSize;
+          int remainingFile = fileLength - ftEnt.seekPtr;
+          int remainingBlocks = blockSize - dataOffset;
+          
+          if(remainingFile > remainingBlocks) 
+          {
+            bytesLeft = remainingBlocks;
+          
+          } 
+          else 
+          {
+            bytesLeft = remainingFile; 
+          }
+          
+          bytesLeft = Math.min(bytesLeft, remainingFile);
+          System.arraycopy(data, dataOffset, buffer, bytesRead, bytesLeft);
+          
+          bytesRead += bytesLeft;           // update data read
+          ftEnt.seekPtr += bytesLeft;       // update pointer to account for data read
+          size -= bytesLeft;
+            
+            
 
-   int read(FileTableEntry ftEnt, byte[] buffer){
+      }
+      
+      return bytesRead;  // number of bytes read
+      
+      
 
    }
 
@@ -166,14 +225,17 @@ public class FileSystem {
 
       switch(whence)
       {
+         // file's seek pointer is set to offset bytes from the beginning of the file
          case SEEK_SET:
-            ftEnt.seekPtr = offset;
-
+            ftEnt.seekPtr = offset; 
+         
+         // file's seek pointer is set to its current value plus the offset   
          case SEEK_CUR:
-            ftEnt.seekPtr += offset;
+            ftEnt.seekPtr += offset; 
 
+         // file's seek pointer is set to the size of the file plus the offset
          case SEEK_END:
-            ftEnt.seekPtr = offset + fsize[ftEnt];
+            ftEnt.seekPtr = offset + fsize(ftEnt);
 
          default:
             return -1;
@@ -183,9 +245,9 @@ public class FileSystem {
       {
          ftEnt.seekPtr = 0;
       }
-      else if (ftEnt.seekPtr > fsize[ftEnt])
+      else if (ftEnt.seekPtr > fsize(ftEnt))
       {
-         ftEnt.seekPtr = fsize[ftEnt];
+         ftEnt.seekPtr = fsize(ftEnt);
 
       }
 
