@@ -1,12 +1,11 @@
 import java.util.Vector;
-
-import javax.lang.model.util.ElementScanner6;
-
-/** ----------------------- FileSystem.java --------------------------
+/** ========================================== FileTable.java ==============================================
  * @author Jeffrey Murray Jr
  * @author Camila Valdebenito
  * @author Connor Riley Shabro
- *
+ * 
+ * Modified: 12/2/19
+ * 
  * SUMMARY
  * Stores a FileTable -> Vector<FileTableEntry>
  * Each file table represents one file descriptor

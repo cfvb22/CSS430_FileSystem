@@ -1,160 +1,169 @@
-
-
 import java.util.Vector;
-
-/**
- * @file FileTable.java
- * @author Terence Schumacher
- * @author Nick Abel
+/** ========================================== FileTable.java ==============================================
+ * @author Jeffrey Murray Jr
+ * @author Camila Valdebenito
+ * @author Connor Riley Shabro
+ * 
+ * Modified: 12/2/19
+ * 
+ * SUMMARY
+ * Stores a FileTable -> Vector<FileTableEntry>
+ * Each file table represents one file descriptor
  *
- * File (Structure) Table is a class which represents the set of file table entries. Each file table entry represents
- * one file descriptor. The main purpose of this class is to create a new file table entry when it is required and then
- * add that to the Vector of file table entry. It removes the file table entry from Vector when it is freed.
+ * PURPOSE
+ * Create a new FTE and adds to FileTable
+ * Removes a FTE from FileTable
  *
  */
+
 public class FileTable {
-    public final static int UNUSED = 0;
-    public final static int USED = 1;
-    public final static int READ = 2;
-    public final static int WRITE = 3;
 
-    private Vector<FileTableEntry> table;         // the actual entity of this file table
-    private Directory dir;        // the root directory
+   public final int UNUSED = 0;
+   public final int USED = 1;
+   public final int READ = 2;
+   public final int WRITE = 3;
 
-    /** Consturctor
-     * Instantiates FileTableEntry table and sets directory to passed Directory reference
-     * @param directory creation directory
-     */
-    public FileTable( Directory directory ) { // constructor
-        table = new Vector<FileTableEntry>( );     // instantiate a file (structure) table
-        dir = directory;           // receive a reference to the Director
-    }                             // from the file system
+   // the actual entity of this file table
+   private Vector<FileTableEntry> FileTable;
 
-    // major public methods
+   // the root directory
+   private Directory dir;
 
-    /** falloc
-     * Function is responsible for creating a FileTableEntry for requested file. It’s ensure, that the file is not
-     * opened for write mode for more than one thread and when file is being written other threads cannot read it.
-     * When thread wants to open file for write mode, which is already opened of write mode its waiting until previous
-     * thread which writes to this file close its FileTableEntry. When file does not exist and is being opened for write
-     * mode it is being created. It also increments the number of threads used given the inode as well it is saving
-     * created FileTableEntry into internal arrays.
-     * @param filename name of allocated resource
-     * @param mode type of situation
-     * @return
-     */
-    public synchronized FileTableEntry falloc( String filename, String mode ) {
-        short iNumber = -1; // inode number
-        Inode inode = null; // holds inode
+   public FileTable( Directory directory ) {
+      // instantiate a file (structure) table
+      FileTable = new Vector<FileTableEntry>( );
 
-        while (true) {
-            // get the inumber form the inode for given file name
-            iNumber = (filename.equals("/") ? (short) 0 : dir.namei(filename));
+      // receive a reference to the Directory
+      dir = directory;
+   }
 
-            // if the inode for the given file exist
-            if (iNumber >= 0) {
-                inode = new Inode(iNumber);
+   // ---------------------------- falloc ----------------------------
+   /**
+    *! falloc
+    ** Creating a FileTableEntry for a requested file
+    * Ensures: file is not open for write by more than one thread
+    *          file is open for write -> others cannot read file
+    *               if already opened -> wait until thread closes FTE
+    *          file does not exist    -> opened in write mode
+    *
+    * @param filename target file in Directory
+    * @param mode "r"/"w"/"a" (read/write/append)
+    * @return null/new FTE
+    */
+   public synchronized FileTableEntry falloc( String filename, String mode ) {
+      // allocate a new file (structure) table entry for this file name
+      Inode inode = null;
+      short iNumber = -1;
 
-                // if the file is requesting ofr reading
-                if (mode.equals("r")) {
+      while(true) {
+         // allocate/retrieve and register the corresponding inode using dir
+         iNumber = (filename.equals("/")) ? (short) 0: dir.namei(filename);
 
-                    // and its flag is read or used or unused
-                    // (nobody has read or written to that file)
-                    if (inode.flag == READ
-                            || inode.flag == USED
-                            || inode.flag == UNUSED) {
+         // File Exists in Directory
+         if(iNumber >= 0)
+         {
+            inode = new Inode(iNumber); // assign iNode
 
-                        // change the flag of the node to read and break
-                        inode.flag = READ;
-                        break;
+            // bad file check ( iNode is out of bounds! )
+            if(inode.flag < UNUSED || inode.flag > READ) { return null; }
 
-                        // if the file is already written by someone, wait until finish
-                    } else if (inode.flag == WRITE) {
-                        try {
-                            wait();
-                        } catch (InterruptedException e) { }
-                    }
-
-                    // if the file is requested for writing or writing/riding or append
-                } else {
-
-                    // and the flag of that file is used, change the flag to write
-                    if (inode.flag == USED || inode.flag == UNUSED) {
-                        inode.flag = WRITE;
-                        break;
-
-                        // if the flag is read or write, wait until they finish
-                    } else {
-                        try {
-                            wait();
-                        } catch (InterruptedException e) { }
-                    }
-                }
-
-                // if the node for the given file does not exist,
-                // create a new inode for that file, use the alloc function from
-                // directory to get the inumber
-            } else if (!mode.equals("r")) {
-                iNumber = dir.ialloc(filename);
-                inode = new Inode(iNumber);
-                inode.flag = WRITE;
-                break;
-
-            } else {
-                return null;
-            }
-        }
-
-        inode.count++;  // increse the number of users
-        inode.toDisk(iNumber);
-        // create new file table entry and add it to the file table
-        FileTableEntry entry = new FileTableEntry(inode, iNumber, mode);
-        table.addElement(entry);
-        return entry;
-    }
-
-    /** ffree
-     * This function is responsible for closing and removing FileTableEntry from cached list. If the thread was the
-     * last user of FileTableEntry, it wakes up another thread with reading status, or all threads if writing status
-     * occurs.
-     * @param entry table entry to free
-     * @return boolean depicting the status of free
-     */
-    public synchronized boolean ffree( FileTableEntry entry ) {
-        // receive a file table entry reference
-        Inode inode = new Inode(entry.iNumber);
-        //try and remove FTE if it is in table, the remove will return true
-        // return true if this file table entry found in my table
-        if (table.remove(entry))
-        {
-            if (inode.flag == READ)
+            // Open file for read
+            if(mode == "r")
             {
-                if (inode.count == 1)
-                {
-                    // free this file table entry.
-                    notify();
-                    inode.flag = USED;
-                }
+               // READ || USED || UNUSED
+               if(inode.flag < WRITE)
+               {
+                  inode.flag = READ;
+                  break;
+               }
+               // WRITE
+               else
+               {
+                  // wait for other thread to finish writing to file
+                  try { wait(); }
+                  catch (InterruptedException e) { }
+               }
             }
-            else if (inode.flag == WRITE)
+            // Open file for writing/append
+            else
             {
-                inode.flag = USED;
-                notifyAll();
+               // USED || UNUSED
+               if(inode.flag <= USED)
+               {
+                  inode.flag = WRITE;
+                  break;
+               }
+               else
+               {
+                  // wait for other thread to finish read/write to file
+                  try { wait(); }
+                  catch (InterruptedException e) { }
+               }
             }
-            //decrease the count of users of that file
-            inode.count--;
-            // save the corresponding inode to the disk
-            inode.toDisk(entry.iNumber);
-            return true;
-        }
-        return false;
-    }
+         }
+         // New File (write/append)
+         else if(!(mode == "r"))
+         {
+            iNumber = dir.ialloc(filename);
+            inode = new Inode(iNumber);
+            inode.flag = WRITE;
+            break;
+         }
+         // Trying to read a file that does not exist
+         else { return null; }
+      }
+      // increment this inode's count
+      inode.count++;
+      // immediately write back this inode to the disk
+      inode.toDisk(iNumber);
+      // return a reference to this file (structure) table entry
+      FileTableEntry entry = new FileTableEntry(inode, iNumber, mode);
+      FileTable.addElement(entry);
+      return entry;
+   }
 
-    /** fempty
-     * This function returns true if there is not any FileTableEntry cached inside FileTable, and false otherwise.
-     * @return boolean value depicting the state of entry
-     */
-    public synchronized boolean fempty( ) {
-        return table.isEmpty( );  // return if table is empty
-    }                            // should be called before starting a format
+   // ---------------------------- ffree ----------------------------
+   /**
+    *! Closes and Removes FileTableEntry from FileTable
+    * If thread was last user (1), wakes up another thread with reading status
+    * Otherwise, all threads if file was written to
+    * @param entry <FileTableEntry> to be freed
+    * @return success/fail
+    */
+   public synchronized boolean ffree( FileTableEntry e ) {
+      // receive a file table entry reference
+      Inode inode = new Inode(e.iNumber);
+      // Check to see if entry is in the FileTable
+      if(FileTable.remove(e))
+      {
+         if(inode.flag == READ)
+         {
+            if(inode.count == 1)
+            {
+               // free this file table entry.
+               notify();
+               inode.flag = USED;
+            }
+         }
+         else if(inode.flag == WRITE)
+         {
+            inode.flag = USED;
+            notifyAll();
+         }
+         // Decrease count of users of entry file
+         inode.count--;
+         // save the corresponding inode to the disk
+         inode.toDisk(e.iNumber);
+         // return true if this file table entry found in my table
+         return true;
+      }
+      return false;
+   }
+   // ---------------------------- fempty ----------------------------
+   /**
+    * @return FileTable.isEmpty()
+    */
+   public synchronized boolean fempty( ) {
+      return FileTable.isEmpty( );  // return if table is empty
+   }                            // should be called before starting a format
 }

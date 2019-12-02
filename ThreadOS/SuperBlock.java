@@ -1,7 +1,9 @@
-/** ----------------------- SuperBlock.java --------------------------
+/** ========================================== SuperBlock.java ==============================================
  * @author Connor Riley Shabro
  * @author Jeffrey Murray Jr
  * @author Camila Valdebenito
+ * 
+ * TODO CONNOR PLZ COMMENT
  *
  * The superblock is a component of the file system implemented in the CSS430 final project in ThreadOS. It is a block
  * of metadata that describes the file system and its componenets. It reads the physical SuperBlock from disk, validates

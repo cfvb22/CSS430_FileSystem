@@ -1,5 +1,12 @@
-
 import java.util.*;
+/** ========================================== Scheduler.java ==============================================
+ * @author Camila Valdebenito
+ * @author Connor Riley Shabro
+ * @author Jeffrey Murray Jr
+ * 
+ * Modified: 11/30/19
+ * 
+ */
 
 public class Scheduler extends Thread
 {
@@ -150,7 +157,7 @@ public class Scheduler extends Thread
         
         while ( true ) {
             try {
-                // get the next TCB and its thrad
+                // get the next TCB and its thread
                 if ( queue.size( ) == 0 )
                     continue;
                 TCB currentTCB = (TCB)queue.firstElement( );
