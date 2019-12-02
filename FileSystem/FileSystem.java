@@ -18,13 +18,13 @@ public class FileSystem {
    public FileSystem( int diskBlock ) {
       // create superblock and format disk with 64 inodes in default
       superblock = new SuperBlock( diskBlock );
-   
+
       // creat directory and register "/" in directory entry 0
       directory = new Directory( superblock.inodeBlocks );
-   
+
       // file table is created and stores directory in the file table
       filetable = new FileTable( directory );
-   
+
       // directory reconstruction
       FileTableEntry dirEnt = open( "/", "r" );
       int directorySize = fsize( dirEnt );
@@ -42,16 +42,16 @@ public class FileSystem {
    void sync(){
      //Temp gets the directory information
       byte[] temp = directory.directory2bytes();
-   
+
      //root is from the root of the directory that we open
       FileTableEntry root = open("/", "w");
-   
+
      //writes to root
       write(root, directory.directory2bytes);
-   
+
      //closes root
       close(root);
-   
+
      //This syncs the superblock
       temp = new byte[superBlock.diskSize];
       SysLib.int2bytes(freeList, temp, 8);
@@ -67,10 +67,10 @@ public class FileSystem {
    boolean format(int files){
      //format the superblock
       superblock.format(files);
-   
+
      //formats directory based on totalInodes
       directory = new Directory(superBlock.totalInodes);
-   
+
      //formats filetable based on directory
       filetable = new FileTable(directory);
       return true;
@@ -84,11 +84,11 @@ public class FileSystem {
    FileTableEntry open(String filename, String mode){
      //creates a new FileTableEntry based on allocating the new file that is being opened
       FileTableEntry ftEnt = filetable.falloc(filename, mode);
-   
+
       //if mode is write and it has a null pointer it returns null
       if(mode == "w" && ftEnt.inode.count != 1)
          return null;
-   
+
       //returns the FileTableEntry
       return ftEnt;
    }
@@ -104,10 +104,10 @@ public class FileSystem {
       else{
        //Does synchronized so multiple values don't overlap
          synchronized(ftEnt){
-         
+
          //lowers count by one
             ftEnt.count -= 1;
-         
+
          //if FileTableEntry count is 0 that means we free it from the file table and no matter what return true
             if(ftEnt.count == 0)
                return filetable.ffree(ftEnt);
@@ -123,30 +123,72 @@ public class FileSystem {
      //if it is null return -1
       if(ftEnt == null)
          return -1;
-   
+
      //synchronized so that threads don't screw up the FileTableEntry
       synchronized(ftEnt){
          return ftEnt.inode.length;
       }
    }
-   
-   
-   
-   
-   
+
+
+
+
+
    public int write(FileTableEntry ftEnt, byte[] buffer){
-   
+     int blockSize = 512;
+     int size = buffer.length();
+     int bytesWritten = 0;
+     int bytesLeft = 0;
+     int fileLength = fsize(ftEnt);
+
+     if(ftEnt.mode == "a" || ftEnt.mode == "r" || buffer == null)
+      return -1;
+
+      while(size > 0){
+        int tgtBlock = ftEnt.inode.getBlockID(ftEnt.seekPtr);
+        if(tgtBlock == -1){
+          if(ftEnt.inode.indirect < 0){
+            return -1;
+          }
+          tgtBlock = superBlock.nextBlock();
+        }
+        byte temp = new byte[blockSize];
+        SysLib.rawread(tgtBlock, temp);
+        int ptr = ftEnt.seekPtr % blockSize;
+        int diff = blockSize - ptr;
+
+        if(diff > size){
+          System.arraycopy(buffer, bytesWritten, temp, ptr, size);
+          SysLib.rawwrite(tgtBlock, temp);
+
+          ftEnt.seekPtr = ftEnt.seekPtr + size;
+          bytesWritten = bytesWritten + size;
+          size = 0;
+        }
+        else{
+          System.arraycopy(buffer, bytesWritten, temp, ptr, diff);
+          SysLib.rawwrite(tgtBlock, temp);
+
+          ftEnt.seekPtr = ftEnt.seekPtr + diff;
+          bytesWritten = bytesWritten + diff;
+          size = size - diff;
+        }
+        if(ftEnt.seekPtr > ftEnt.inode.length)
+          ftEnt.inode.length = ftEnt.seekPtr
+      }
+      ftEnt.inode.toDisk(ftEnt.iNumber);
+      return bytesWritten;
    }
-   
-   
-   
-   
-   
+
+
+
+
+
    // ---------------------- read(FileTableEntry ftEnt, byte[] buffer) --------------------------
-   // reads up to buffer.length bytes from the file indicated by ftEnt, starting at the position currently 
-   // pointed to by the seek pointer. If bytes remaining between the current seek pointer and the end of 
-   // file are less than buffer.length, SysLib.read reads as many bytes as possible,putting them into the 
-   // beginning of buffer. It increments the seek pointer by the number of bytes to have been read. 
+   // reads up to buffer.length bytes from the file indicated by ftEnt, starting at the position currently
+   // pointed to by the seek pointer. If bytes remaining between the current seek pointer and the end of
+   // file are less than buffer.length, SysLib.read reads as many bytes as possible,putting them into the
+   // beginning of buffer. It increments the seek pointer by the number of bytes to have been read.
    // The return value is the number of bytes that have been read, or a negative value upon an error.
    public synchronized int read(FileTableEntry ftEnt, byte[] buffer)
    {
@@ -155,54 +197,54 @@ public class FileSystem {
       int fileLength = fsize(ftEnt);
       int bytesLeft = 0;
       int bytesRead = 0;
-      
+
       // checks for reading errors
-      if(ftEnt.mode == "a"|| ftEnt.mode == "w" || buffer == null) 
+      if(ftEnt.mode == "a"|| ftEnt.mode == "w" || buffer == null)
       {
          return -1;
       }
-      
-      while(ftEnt.seekPtr < fileLength && size > 0) 
+
+      while(ftEnt.seekPtr < fileLength && size > 0)
       {
          // retrieves the block number
          int blockNum = ftEnt.inode.getBlockIndex(ftEnt.seekPtr);
-         
+
          if(blockNum == -1) // checks for invalid blockNum/ block location
          {
             break;
          }
          byte[] data = new byte[blockSize];
-         SysLib.rawread(blockNum, data); 
-       
+         SysLib.rawread(blockNum, data);
+
          int dataOffset = ftEnt.seekPtr % blockSize;
          int remainingFile = fileLength - ftEnt.seekPtr;
          int remainingBlocks = blockSize - dataOffset;
-          
-         if(remainingFile > remainingBlocks) 
+
+         if(remainingFile > remainingBlocks)
          {
             bytesLeft = remainingBlocks;
-          
-         } 
-         else 
-         {
-            bytesLeft = remainingFile; 
+
          }
-          
+         else
+         {
+            bytesLeft = remainingFile;
+         }
+
          bytesLeft = Math.min(bytesLeft, remainingFile);
          System.arraycopy(data, dataOffset, buffer, bytesRead, bytesLeft);
-          
+
          bytesRead += bytesLeft;           // update data read
          ftEnt.seekPtr += bytesLeft;       // update pointer to account for data read
          size -= bytesLeft;
-            
-            
-      
+
+
+
       }
-      
+
       return bytesRead;  // number of bytes read
-      
-      
-   
+
+
+
    }
 
 
@@ -213,12 +255,12 @@ public class FileSystem {
    public boolean delete(String filename)
    {
       FileTableEntry tcb = open(filename, "w"); // Grabs the iNode(aka tcb)
-   
+
       if(directory.ifree(tcb.iNumber) && close(tcb)) // frees iNode and closes successfully
       {
          return true;   // deletion successful
       }
-   
+
       return false;     // deletion unsuccessful
    }
 
@@ -232,25 +274,25 @@ public class FileSystem {
    // If whence is SEEK_CUR (= 1), the file's seek pointer is set to its current value plus the offset. The offset can be positive or negative.
    // If whence is SEEK_END (= 2), the file's seek pointer is set to the size of the file plus the offset. The offset can be positive or negative.
    public synchronized int seek(FileTableEntry ftEnt, int offset, int whence){
-   
+
       switch(whence)
       {
          // file's seek pointer is set to offset bytes from the beginning of the file
          case SEEK_SET:
-            ftEnt.seekPtr = offset; 
-         
-         // file's seek pointer is set to its current value plus the offset   
+            ftEnt.seekPtr = offset;
+
+         // file's seek pointer is set to its current value plus the offset
          case SEEK_CUR:
-            ftEnt.seekPtr += offset; 
-         
+            ftEnt.seekPtr += offset;
+
          // file's seek pointer is set to the size of the file plus the offset
          case SEEK_END:
             ftEnt.seekPtr = offset + fsize(ftEnt);
-         
+
          default:
             return -1;
       }
-   
+
       if(ftEnt.seekPtr < 0)
       {
          ftEnt.seekPtr = 0;
@@ -258,10 +300,10 @@ public class FileSystem {
       else if (ftEnt.seekPtr > fsize(ftEnt))
       {
          ftEnt.seekPtr = fsize(ftEnt);
-      
+
       }
-   
+
       return ftEnt.seekPtr;
-   
+
    }
 }
