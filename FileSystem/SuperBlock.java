@@ -33,6 +33,11 @@ class SuperBlock {
       freeList = SysLib.bytes2int(superBlock, 8);
       totalBlocks = SysLib.bytes2int(superBlock, 0);
       totalInodes = SysLib.bytes2int(superBlock, 4);
+      if(freeList >= 2 && totalBlocks == diskSize && totalInodes > 0)
+        return;
+      else{
+        format(64);
+      }
    }
 
 //-----------------nextBlock------------------
@@ -70,7 +75,7 @@ class SuperBlock {
       //totalInodes is changed to the numberOfBlock and the freeList is updated
       //based on this new value
       totalInodes = numberOfBlock;
-      freeList = 2 + (totalInodes / 16);
+      freeList = 1 + (totalInodes / 16);
 
       //Creates all new Inodes to be brought to disk based on total number of them
       for(short i = 0; i < totalInodes; i++){
@@ -81,17 +86,17 @@ class SuperBlock {
 
       //Based on freeList it writes the blocks handled by it
       for(int i = freeList; i < totalBlocks; i++){
-         superBlock = new byte[diskSize];
-         SysLib.int2bytes(i+1, superBlock, 0);
-         SysLib.rawwrite(i, superBlock);
+         byte[] temp = new byte[diskSize];
+         SysLib.int2bytes(i+1, temp, 0);
+         SysLib.rawwrite(i, temp);
       }
 
       //This links all the variables back to int and writes the first block to the disk
       //and aks like a clean new SuperBlock that matches the physical disk
       superBlock = new byte[diskSize];
-      SysLib.int2bytes(freeList, superBlock, 8);
-      SysLib.int2bytes(totalInodes, superBlock, 4);
       SysLib.int2bytes(totalBlocks, superBlock, 0);
+      SysLib.int2bytes(totalInodes, superBlock, 4);
+      SysLib.int2bytes(freeList, superBlock, 8);
       SysLib.rawwrite(0, superBlock);
    }
 

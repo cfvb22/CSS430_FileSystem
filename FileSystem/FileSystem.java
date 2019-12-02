@@ -39,7 +39,7 @@ public class FileSystem {
 //------------------------sync()-----------------------
 //This syncs the directory to the physical disk and then
 //syncs the superblock
-   void sync(){
+   public void sync(){
      //Temp gets the directory information
       byte[] temp = directory.directory2bytes();
 
@@ -64,7 +64,7 @@ public class FileSystem {
    //@params files:this will represent the amount of Inodes present
    //@returns true if complete
    //This formats the firectory, superblock, and filetable
-   boolean format(int files){
+   public boolean format(int files){
      //format the superblock
       superblock.format(files);
 
@@ -81,7 +81,7 @@ public class FileSystem {
    //mode is what mode you want to have while opening the file
    //@returns null if you want to write to a file and the pointer associated is messed up
    //returns true if successfully opens the file
-   FileTableEntry open(String filename, String mode){
+   public FileTableEntry open(String filename, String mode){
      //creates a new FileTableEntry based on allocating the new file that is being opened
       FileTableEntry ftEnt = filetable.falloc(filename, mode);
 
@@ -97,7 +97,7 @@ public class FileSystem {
    //@params ftEnt: FileTableEntry that you want to close
    //@returns true or false based on if a FileTableEntry was closed
    //This is to close a FileTableEntry
-   boolean close(FileTableEntry ftEnt){
+   public boolean close(FileTableEntry ftEnt){
      //if the ftEnt is null we don't wanna break the system and return false
       if(ftEnt == null)
          return false;
@@ -119,7 +119,7 @@ public class FileSystem {
    //----------------------fsize(FileTableEntry ftEnt)---------------------
    //@params ftEnt: this the the FileTableEntry it will find the size of
    //@returns length of FileTableEntry
-   int fsize(FileTableEntry ftEnt){
+   public int fsize(FileTableEntry ftEnt){
      //if it is null return -1
       if(ftEnt == null)
          return -1;
