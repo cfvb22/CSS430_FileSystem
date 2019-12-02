@@ -6,15 +6,15 @@ import javax.lang.model.util.ElementScanner6;
  * @author Jeffrey Murray Jr
  * @author Camila Valdebenito
  * @author Connor Riley Shabro
- * 
+ *
  * SUMMARY
  * Stores a FileTable -> Vector<FileTableEntry>
  * Each file table represents one file descriptor
- * 
+ *
  * PURPOSE
  * Create a new FTE and adds to FileTable
- * Removes a FTE from FileTable 
- * 
+ * Removes a FTE from FileTable
+ *
  */
 
 public class FileTable {
@@ -25,18 +25,18 @@ public class FileTable {
    public final int WRITE = 3;
 
    // the actual entity of this file table
-   private Vector<FileTableEntry> FileTable;  
+   private Vector<FileTableEntry> FileTable;
 
-   // the root directory 
-   private Directory dir;                    
+   // the root directory
+   private Directory dir;
 
-   public FileTable( Directory directory ) {     
-      // instantiate a file (structure) table 
-      FileTable = new Vector<FileTableEntry>( );     
+   public FileTable( Directory directory ) {
+      // instantiate a file (structure) table
+      FileTable = new Vector<FileTableEntry>( );
 
       // receive a reference to the Directory
-      dir = directory;           
-   } 
+      dir = directory;
+   }
 
    // ---------------------------- falloc ----------------------------
    /**
@@ -61,7 +61,7 @@ public class FileTable {
          iNumber = (filename.equals("/")) ? (short) 0: dir.namei(filename);
 
          // File Exists in Directory
-         if(iNumber >= 0) 
+         if(iNumber >= 0)
          {
             inode = new Inode(iNumber); // assign iNode
 
@@ -77,7 +77,7 @@ public class FileTable {
                   inode.flag = READ;
                   break;
                }
-               // WRITE 
+               // WRITE
                else
                {
                   // wait for other thread to finish writing to file
@@ -85,7 +85,7 @@ public class FileTable {
                   catch (InterruptedException e) { }
                }
             }
-            // Open file for writing/append 
+            // Open file for writing/append
             else
             {
                // USED || UNUSED
@@ -106,7 +106,7 @@ public class FileTable {
          else if(!(mode == "r"))
          {
             iNumber = dir.ialloc(filename);
-            inode = new Inode(number);
+            inode = new Inode(iNumber);
             inode.flag = WRITE;
             break;
          }
@@ -118,8 +118,8 @@ public class FileTable {
       // immediately write back this inode to the disk
       inode.toDisk(iNumber);
       // return a reference to this file (structure) table entry
-      FileTableEntry entry = FileTableEntry(inode, iNumber, mode);
-      table.addElement(entry);
+      FileTableEntry entry = new FileTableEntry(inode, iNumber, mode);
+      FileTable.addElement(entry);
       return entry;
    }
 
@@ -137,7 +137,7 @@ public class FileTable {
       // Check to see if entry is in the FileTable
       if(FileTable.remove(e))
       {
-         if(inode.flag == READ) 
+         if(inode.flag == READ)
          {
             if(inode.count == 1)
             {
@@ -165,6 +165,6 @@ public class FileTable {
     * @return FileTable.isEmpty()
     */
    public synchronized boolean fempty( ) {
-      return FileTable.isEmpty( );  // return if table is empty 
+      return FileTable.isEmpty( );  // return if table is empty
    }                            // should be called before starting a format
 }
