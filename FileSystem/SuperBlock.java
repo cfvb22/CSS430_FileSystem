@@ -17,7 +17,7 @@ class SuperBlock {
    public int totalInodes; // the number of inodes
    public int freeList;    // the block number of the free list's head
    private byte[] superBlock; //array of bytes to track all read data
-   private int diskSize;  //This keeps the diskSize to be used for other methods
+   public int diskSize;  //This keeps the diskSize to be used for other methods
 
 //---------------default_constructor----------------
 //Creates the superblock and initializes its variables
@@ -75,8 +75,8 @@ class SuperBlock {
       //Creates all new Inodes to be brought to disk based on total number of them
       for(short i = 0; i < totalInodes; i++){
          Inode temp = new Inode();
-         Inode.flag = 0;
-         Inode.toDisk(i);
+         temp.flag = 0;
+         temp.toDisk(i);
       }
 
       //Based on freeList it writes the blocks handled by it

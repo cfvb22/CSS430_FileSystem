@@ -20,7 +20,7 @@ public class FileSystem {
       superblock = new SuperBlock( diskBlock );
 
       // creat directory and register "/" in directory entry 0
-      directory = new Directory( superblock.inodeBlocks );
+      directory = new Directory( superblock.totalInodes );
 
       // file table is created and stores directory in the file table
       filetable = new FileTable( directory );
@@ -47,16 +47,16 @@ public class FileSystem {
       FileTableEntry root = open("/", "w");
 
      //writes to root
-      write(root, directory.directory2bytes);
+      write(root, directory.directory2bytes());
 
      //closes root
       close(root);
 
      //This syncs the superblock
-      temp = new byte[superBlock.diskSize];
-      SysLib.int2bytes(freeList, temp, 8);
-      SysLib.int2bytes(totalBlocks, temp, 0);
-      SysLib.int2bytes(totalInodes, temp, 4);
+      temp = new byte[superblock.diskSize];
+      SysLib.int2bytes(superblock.freeList, temp, 8);
+      SysLib.int2bytes(superblock.totalBlocks, temp, 0);
+      SysLib.int2bytes(superblock.totalInodes, temp, 4);
       SysLib.rawwrite(0, temp);
    }
 
@@ -69,7 +69,7 @@ public class FileSystem {
       superblock.format(files);
 
      //formats directory based on totalInodes
-      directory = new Directory(superBlock.totalInodes);
+      directory = new Directory(superblock.totalInodes);
 
      //formats filetable based on directory
       filetable = new FileTable(directory);
@@ -136,7 +136,7 @@ public class FileSystem {
 
    public int write(FileTableEntry ftEnt, byte[] buffer){
      int blockSize = 512;
-     int size = buffer.length();
+     int size = buffer.length;
      int bytesWritten = 0;
      int bytesLeft = 0;
      int fileLength = fsize(ftEnt);
@@ -145,14 +145,14 @@ public class FileSystem {
       return -1;
 
       while(size > 0){
-        int tgtBlock = ftEnt.inode.getBlockID(ftEnt.seekPtr);
+        int tgtBlock = ftEnt.inode.getBlockIndex(ftEnt.seekPtr);
         if(tgtBlock == -1){
           if(ftEnt.inode.indirect < 0){
             return -1;
           }
-          tgtBlock = superBlock.nextBlock();
+          tgtBlock = superblock.nextBlock();
         }
-        byte temp = new byte[blockSize];
+        byte[] temp = new byte[blockSize];
         SysLib.rawread(tgtBlock, temp);
         int ptr = ftEnt.seekPtr % blockSize;
         int diff = blockSize - ptr;
@@ -174,7 +174,7 @@ public class FileSystem {
           size = size - diff;
         }
         if(ftEnt.seekPtr > ftEnt.inode.length)
-          ftEnt.inode.length = ftEnt.seekPtr
+          ftEnt.inode.length = ftEnt.seekPtr;
       }
       ftEnt.inode.toDisk(ftEnt.iNumber);
       return bytesWritten;
