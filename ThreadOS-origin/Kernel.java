@@ -83,6 +83,8 @@ public class Kernel
                   // instantiate synchronized queues
                   ioQueue = new SyncQueue( );
                   waitQueue = new SyncQueue( scheduler.getMaxThreads( ) );
+
+                  fs = new FileSystem(disk.blockSize);
                   return OK;
                case EXEC:
                   return sysExec( ( String[] )args );
@@ -152,21 +154,40 @@ public class Kernel
                         System.out.println( "threaOS: caused read errors" );
                         return ERROR;
                   }
-                  // return FileSystem.read( param, byte args[] );
-                  return ERROR;
-               case WRITE:
-                  switch ( param ) {
-                     case STDIN:
-                        System.out.println( "threaOS: cannot write to System.in" );
-                        return ERROR;
-                     case STDOUT:
-                        System.out.print( (String)args );
-                        break;
-                     case STDERR:
-                        System.err.print( (String)args );
-                        break;
+                  myTcb = scheduler.getMyTcb(); // get TCB
+                  if (myTcb != null)
+                  {
+                     FileTableEntry ftEnt = myTcb.getFtEnt(param); // get entry with the file descriptor
+                     if (ftEnt != null)
+                     {
+                        return fs.read(ftEnt, (byte[]) args); // read from file system & return total bytes read
+                     }
                   }
-                  return OK;
+                  return ERROR;
+                  case WRITE:
+                     switch ( param ) {
+                        case STDIN:
+                           System.out.println( "threaOS: cannot write to System.in" );
+                           return ERROR;
+                        case STDOUT:
+                           System.out.print( (String)args );
+                           return OK;
+                        case STDERR:
+                           System.err.print( (String)args );
+                           return OK;
+                  }
+                  // Added --------------------------------------------------------------------------------------------
+                  myTcb = scheduler.getMyTcb(); // get TCB
+                  if (myTcb != null)
+                  {
+                     FileTableEntry ftEnt = myTcb.getFtEnt(param); // get entry with the file descriptor
+                     if (ftEnt != null)
+                     {
+                        return fs.write(ftEnt, (byte[]) args); // write to file system and return total bytes written
+                     }
+                  }
+                  // --------------------------------------------------------------------------------------------------
+                  return ERROR;
                case CREAD:   // to be implemented in assignment 4
                   return cache.read( param, ( byte[] )args ) ? OK : ERROR;
                case CWRITE:  // to be implemented in assignment 4

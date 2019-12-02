@@ -92,13 +92,7 @@ class SuperBlock {
          SysLib.rawwrite(i, temp);
       }
 
-      //This links all the variables back to int and writes the first block to the disk
-      //and aks like a clean new SuperBlock that matches the physical disk
-      superBlock = new byte[diskSize];
-      SysLib.int2bytes(totalBlocks, superBlock, 0);
-      SysLib.int2bytes(totalInodes, superBlock, 4);
-      SysLib.int2bytes(freeList, superBlock, 8);
-      SysLib.rawwrite(0, superBlock);
+      sync();
    }
 
 //------------------addBlock--------------------
@@ -126,5 +120,15 @@ class SuperBlock {
     }
   //returns false
    return false;
+   }
+
+   public void sync(){
+      //This links all the variables back to int and writes the first block to the disk
+      //and aks like a clean new SuperBlock that matches the physical disk
+      superBlock = new byte[diskSize];
+      SysLib.int2bytes(totalBlocks, superBlock, 0);
+      SysLib.int2bytes(totalInodes, superBlock, 4);
+      SysLib.int2bytes(freeList, superBlock, 8);
+      SysLib.rawwrite(0, superBlock);
    }
 }
