@@ -280,14 +280,17 @@ public class FileSystem {
          // file's seek pointer is set to offset bytes from the beginning of the file
          case SEEK_SET:
             ftEnt.seekPtr = offset;
+            break;
 
          // file's seek pointer is set to its current value plus the offset
          case SEEK_CUR:
             ftEnt.seekPtr += offset;
+            break;
 
          // file's seek pointer is set to the size of the file plus the offset
          case SEEK_END:
             ftEnt.seekPtr = offset + fsize(ftEnt);
+            break;
 
          default:
             return -1;
