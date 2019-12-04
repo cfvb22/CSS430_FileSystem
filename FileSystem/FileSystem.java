@@ -32,21 +32,24 @@ public class FileSystem {
 	 */
     public FileSystem (int blocks)
     {
+      //Creates the superBlock, directory, and filetable
     	superblock = new SuperBlock(blocks);
     	directory = new Directory(superblock.totalInodes);
     	filetable = new FileTable(directory);
 
-    	// read root
-    	FileTableEntry entry = open( "/", "r");
-    	int size = fsize(entry);
-    	if (size > 0)
-    	{
-    		// read and convert to directory
+    	//opens the root
+    	FileTableEntry ftEnt = open( "/", "r");
+      //gets size of root
+    	int size = fsize(ftEnt);
+
+      //if root is larger than 0 it makes root the new directory
+    	if (size > 0){
     		byte[] data = new byte[size];
-    		read(entry, data);
+    		read(ftEnt, data);
     		directory.bytes2directory(data);
     	}
-    	close(entry);
+      //closes the root
+    	close(ftEnt);
     }
 
 	 //---------------------- int sync( ) ---------------------
@@ -55,16 +58,14 @@ public class FileSystem {
 	 * Write the directory info to the disk in byte form in the root directory
 	 * @see SuperBlock.java
 	 */
-    public void sync()
-    {
-    	byte[] tempData = directory.directory2bytes();
-    	// open root dir with write access
+    public void sync(){
+    	//Opens root
     	FileTableEntry root = open("/", "w");
-        // write directory to root
+        //writes the directory to root
     	write(root, directory.directory2bytes());
-        // close root directory
+        //closes the root
     	close(root);
-        // sync superblock
+        //Syncs the superBlock
     	superblock.sync();
     }
 
@@ -77,13 +78,14 @@ public class FileSystem {
 	 * @return success always
 	 */
     public boolean format( int files){
-        // format superblock for number of files
+        //Formats SuperBlock
     	superblock.format(files);
-        // New directory, and register root "/"
+        //creates new directory based on the amount of Inodes
     	directory = new Directory(superblock.totalInodes);
-        // New File Table with new directory
+        //creates a new file table based on the new directory
     	filetable = new FileTable(directory);
-        return true;
+      //returns true
+      return true;
 	}
 
 	 //---------------------- int open( FileTableEntry, String ) ---------------------
@@ -94,15 +96,11 @@ public class FileSystem {
 	 */
     public FileTableEntry open(String filename, String mode){
     	// falloc will return a FTE with either r/w
-		// r -> found target file
-		// w -> new file with filename
     	FileTableEntry ftEntry = filetable.falloc(filename, mode);
-        // write check
-    	if (mode == "w")
-    	{
-    		// if so, make sure all blocks are unallocated
-    		if (deallocEntry( ftEntry ) == false)
-    		{
+        //sees if mode is write
+    	  if (mode == "w"){
+    		//unallocate all blocks
+    		if (deallocEntry( ftEntry ) == false){
     			return null;
     		}
     	}
@@ -114,15 +112,17 @@ public class FileSystem {
 	 * @param entry table entry to close
 	 * @return freed status or true
 	 */
-    public boolean close(FileTableEntry entry){
-    	// entry must be synchronized
-    	synchronized(entry) {
-			// decrease the number of users
-			entry.count--;
+    public boolean close(FileTableEntry ftEnt){
+    	//synchronized so threads don't overlap
+    	synchronized(ftEnt) {
+			//removes the amount of people with file open
+			ftEnt.count--;
 
-			if (entry.count == 0) {
-				return filetable.ffree(entry);
+      //If no threads are using file anymore free it from filetable
+			if (ftEnt.count == 0) {
+				return filetable.ffree(ftEnt);
 			}
+      //Otherwise just return true
 			return true;
 		}
 	}
@@ -134,50 +134,57 @@ public class FileSystem {
 	 * @param buffer size of data being read
 	 * @return amount of data read
 	 */
-	public int read(FileTableEntry entry, byte[] buffer)
-	{
-        //check write or append status
-		if ((entry.mode == "w") || (entry.mode == "a"))
+	public int read(FileTableEntry ftEnt, byte[] buffer){
+    //If the file was not meant to be read return a fail -1
+		if (ftEnt.mode == "w" || ftEnt.mode == "a")
 			return -1;
 
-        int size  = buffer.length;   //set total size of data to read
-        int bytesRead = 0;            //track data read
-        int bytesLeft = 0;
+    //Creates a size, bytesRead, and bytesLeft to keep track of what you're reading
+    int size  = buffer.length;
+    int bytesRead = 0;
+    int bytesLeft = 0;
 
-        synchronized(entry)
-        {
-        	while (entry.seekPtr < fsize(entry) && (size > 0))
-        	{
-        		int currentBlock = entry.inode.fetchTarget(entry.seekPtr);
-        		if (currentBlock == -1)
-        			break;
+    //synchronized so threads don't overlap
+    synchronized(ftEnt){
+      //While the seekPointer is not greater than filesize and it isn't size 0 or less
+      while (ftEnt.seekPtr < fsize(ftEnt) && size > 0){
+        //Finds the block the file is in
+        int currentBlock = ftEnt.inode.fetchTarget(ftEnt.seekPtr);
+        //If error with block it stops looping
+        if (currentBlock == -1)
+        	break;
 
-				// read current data
-				byte[] data = new byte[Disk.blockSize];
-        		SysLib.rawread(currentBlock, data);
+				//cur is the data you are going to be reading
+				byte[] cur = new byte[Disk.blockSize];
+        //reads data into cur
+        SysLib.rawread(currentBlock, cur);
 
-				// intialize iterative values
-        		int dataOffset = entry.seekPtr % Disk.blockSize;
-        		int blocksLeft = Disk.blockSize - bytesLeft;
-        		int fileLeft = fsize(entry) - entry.seekPtr;
+				//Sets the data to make sure you read the right amount of data
+        int dataOffset = ftEnt.seekPtr % Disk.blockSize;
+        int blocksLeft = Disk.blockSize - bytesLeft;
+        int fileLeft = fsize(ftEnt) - ftEnt.seekPtr;
 
-				// Assign blocks left to read
-        		if (blocksLeft < fileLeft)
+				//if less blocks less then bytes is = to blocksLeft
+        //otherwise bytes left is = to how much file is left
+        if (blocksLeft < fileLeft)
 					bytesLeft = blocksLeft;
 				else
 					bytesLeft = fileLeft;
 
+        //This checks to see if the bytes left is greater than the size
+        //If so it gets changed to that
 				if (bytesLeft > size)
 					bytesLeft = size;
 
-				// Copy data & adjust iteratives
-        		System.arraycopy(data, dataOffset, buffer, bytesRead, bytesLeft);
-        		bytesRead += bytesLeft;
-        		entry.seekPtr += bytesLeft;
-        		size -= bytesLeft;
-        	}
-        	return bytesRead;
-        }
+				//Uses array copy with the updated variables
+        System.arraycopy(cur, dataOffset, buffer, bytesRead, bytesLeft);
+        bytesRead += bytesLeft;
+        ftEnt.seekPtr += bytesLeft;
+        size -= bytesLeft;
+      }
+      //returns the amount of bytes that were read
+      return bytesRead;
+    }
 	}
 
 	//---------------------- int write( FileTableEntry, byte[] ) ---------------------
@@ -188,61 +195,66 @@ public class FileSystem {
 	 * @param buffer contents to be written
 	 * @return number of bytes written, -1 if failure
 	 */
-    public int write(FileTableEntry entry, byte[] buffer){
-    	int bytesWritten = 0;
+  public int write(FileTableEntry ftEnt, byte[] buffer){
+    //This keeps track the amount of bytes being written and how larger the buffer is
+    int bytesWritten = 0;
 		int bufferSize = buffer.length;
 		int blockSize = Disk.blockSize;
 
-		if (entry == null || entry.mode == "r")
-		{
+    //If the file is null or shouldn't write it returns a fail -1
+		if (ftEnt == null || ftEnt.mode == "r"){
 			return -1;
 		}
 
-		synchronized (entry)
-		{
-			while (bufferSize > 0)
-			{
-				int location = entry.inode.fetchTarget(entry.seekPtr);
+    //synchronized so threads don't run over eachother
+		synchronized (ftEnt){
+      //while there is stuff to still be written
+			while (bufferSize > 0){
+        //Where you write
+				int location = ftEnt.inode.fetchTarget(ftEnt.seekPtr);
 
-				// if current block null
+				//If the location can't be written to it finds a new block
 				if (location == -1)
-					location = assignLocation(entry);
+					location = assignLocation(ftEnt);
 
-				// assign a buffer & read at location
-				byte [] tempBuff = new byte[blockSize];
+				//Creates a temp buffer and reads from the location
+				byte[] tempBuff = new byte[blockSize];
 				SysLib.rawread(location, tempBuff);
 
-				int tempPtr = entry.seekPtr % blockSize;
+        //creates a temp pointer and the difference between blockSize and ptr
+				int tempPtr = ftEnt.seekPtr % blockSize;
 				int diff = blockSize - tempPtr;
 
-				// Rainy Day, writing the final bits, exit
-				if (diff > bufferSize)
-				{
+				//if the difference is less than the buffer size
+				if (diff > bufferSize){
+          //copies the array using the variables and then writes the data
 					System.arraycopy(buffer, bytesWritten, tempBuff, tempPtr, bufferSize);
 					SysLib.rawwrite(location, tempBuff);
 
-					entry.seekPtr += bufferSize;
+          //updates variables after writing using the buffersize
+					ftEnt.seekPtr += bufferSize;
 					bytesWritten += bufferSize;
 					bufferSize = 0;
 				}
-				// Sunny Day, writing bits, continue
 				else {
+          //copies the array using the variables and then writes the data
 					System.arraycopy(buffer, bytesWritten, tempBuff, tempPtr, diff);
 					SysLib.rawwrite(location, tempBuff);
 
-					entry.seekPtr += diff;
+          //updates the variables after writing using the difference
+					ftEnt.seekPtr += diff;
 					bytesWritten += diff;
 					bufferSize -= diff;
 				}
 			}
 
-			// update inode length if seekPtr larger
-
-			if (entry.seekPtr > entry.inode.length)
-			{
-				entry.inode.length = entry.seekPtr;
+      ///if the pointer is larger than the Inode it updates the length of the Inode
+			if (ftEnt.seekPtr > ftEnt.inode.length){
+				ftEnt.inode.length = ftEnt.seekPtr;
 			}
-			entry.inode.toDisk(entry.iNumber);
+      //puts the Inode to the disk
+			ftEnt.inode.toDisk(ftEnt.iNumber);
+      //returns the amount of bytes that were written
 			return bytesWritten;
 		}
 	}
@@ -253,27 +265,26 @@ public class FileSystem {
 	 * Assumption: location == -1
 	 * @return newLocation
 	 */
-	private int assignLocation(FileTableEntry ftEnt)
-	{
+	private int assignLocation(FileTableEntry ftEnt){
+    //the new location is wherever the next superblock finds
 		short newLocation = (short) superblock.nextBlock();
 
+    //The testpointer is the free index it can find
 		int testPtr = ftEnt.inode.getFreeBlockIndex(ftEnt.seekPtr, newLocation);
 
-		// error on write of nullptr
-		if (testPtr == -3)
-		{
+		//If the pointer is incorrect it finds a new block
+		if (testPtr == -3){
 			short freeBlock = (short) this.superblock.nextBlock();
 
-			// indirect pointer is empty
-			if (!ftEnt.inode.setIndexBlock(freeBlock))
+			//If the second location is bad it returns -1
+			if (ftEnt.inode.setIndexBlock(freeBlock) == false)
 				return -1;
 
-			// check block pointer error
+			//If the new location index is wrongit returns -1
 			if (ftEnt.inode.getFreeBlockIndex(ftEnt.seekPtr, newLocation) != 0)
 				return -1;
-
 		}
-		// Error on write of unused and used
+		//Error for testpointers below 0
 		else if (testPtr == -2 || testPtr == -1)
 			return -1;
 
@@ -333,30 +344,29 @@ public class FileSystem {
 	 * @return successful/fail
 	 */
     private boolean deallocEntry(FileTableEntry ftEnt){
-    	if (ftEnt.inode.count != 1)
-		{
+      //If it has more than one Inode it returns
+    	if (ftEnt.inode.count != 1){
 			return false;
 		}
 
-		for (short blockId = 0; blockId < ftEnt.inode.directSize; blockId++)
-		{
-			if (ftEnt.inode.direct[blockId] != -1)
-			{
+    //Goes through the blockIds returning them to the Freelist in superBlock
+		for (short blockId = 0; blockId < ftEnt.inode.directSize; blockId++){
+			if (ftEnt.inode.direct[blockId] != -1){
 				superblock.returnBlock(blockId);
 				ftEnt.inode.direct[blockId] = -1;
 			}
 		}
 
+    //data is the free indirect
 		byte[] data = ftEnt.inode.freeIndirect();
-
-		if (data != null)
-		{
+		if (data != null){
+      //returns all the indirect blocks to superBlock
 			short blockId;
-			while((blockId = SysLib.bytes2short(data, 0)) != -1)
-			{
+			while((blockId = SysLib.bytes2short(data, 0)) != -1){
 				superblock.returnBlock(blockId);
 			}
 		}
+    //puts inode on the disk
 		ftEnt.inode.toDisk(ftEnt.iNumber);
 		return true;
     }
@@ -366,14 +376,16 @@ public class FileSystem {
 	 * If the file is currently open, it is not destroyed
 	 * until the last open on it is closed, but new attempts to open it will fail.
 	 */
-	public boolean delete(String filename)
-	{
-		FileTableEntry tcb = open(filename, "w"); // Grabs the iNode(aka tcb)
+	public boolean delete(String filename){
+    //opens file
+		FileTableEntry tcb = open(filename, "w");
 
-		if(directory.ifree(tcb.iNumber) && close(tcb)) // frees iNode and closes successfully
-			return true;   // deletion successful
+    //frees the inode and closes
+		if(directory.ifree(tcb.iNumber) && close(tcb))
+			return true;
 
-		return false;     // deletion unsuccessful
+    //If not deleted returns false
+		return false;
 	}
 
 
