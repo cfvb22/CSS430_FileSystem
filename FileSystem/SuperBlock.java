@@ -2,210 +2,124 @@
  * @author Connor Riley Shabro
  * @author Jeffrey Murray Jr
  * @author Camila Valdebenito
- * 
- * TODO CONNOR PLZ COMMENT
- *
- * The superblock is a component of the file system implemented in the CSS430 final project in ThreadOS. It is a block
- * of metadata that describes the file system and its componenets. It reads the physical SuperBlock from disk, validates
- * the health of the disk and provides methods for identifying free blocks, adding blocks to the free list, and writing
- * back to disk the contents of SuperBlock. If validation fails, it will format the disk and write a new SuperBlock to
- * disk
- *
  */
 public class SuperBlock {
-	private final int defaultInodeBlocks = 64;
-	private final int totalBlockLocation = 0;
-	private final int totalInodeLocation = 4;
-	private final int freeListLocation = 8;
-	private final int defaultBlocks = 1000;
+	public int totalBlocks; // total number of disk blocks
+  public int totalInodes; // total number of inodes
+  public int freeList;    // free list's head
+	public int blockSize;   //This is the size of the blocks
 
-    public int totalBlocks; // the number of disk blocks
-    public int totalInodes; // the number of inodes
-    public int freeList;    // the block number of the free list's head
-
-	public int inodeBlocks;
-
-	/** Constructor
-	 * Public constructor for SuperBlock accepts a single int argument equal to the total number of blocks on Disk.
-	 * The constructor will read the SuperBlock from disk and initialize member variables for the number of blocks, the
-	 * number of inodes, and the block number of the free list’s head.
-	 * @param numBlocks
-	 */
+	//Constructor that sets the amount of blocks
 	public SuperBlock(int numBlocks){
-
-		byte [] superBlock = new byte[Disk.blockSize];
-
+		//Creates a new superblock and reads to it from the disk
+		blockSize = Disk.blockSize;
+		byte [] superBlock = new byte[blockSize];
 		SysLib.rawread(0, superBlock);
 
-		totalBlocks = SysLib.bytes2int(superBlock, totalBlockLocation);
-		totalInodes = SysLib.bytes2int(superBlock, totalInodeLocation);
+		//Sets the totalBlocks, totalInodes, and freeList from the superBlock
+		//that was read to before this.
+		totalBlocks = SysLib.bytes2int(superBlock, 0);
+		totalInodes = SysLib.bytes2int(superBlock, 4);
+		freeList = SysLib.bytes2int(superBlock, 8);
 
-		freeList = SysLib.bytes2int(superBlock, freeListLocation);
-
-		inodeBlocks = totalInodes;
-
-		//disk contents validation
-		if (totalBlocks == numBlocks && totalInodes > 0 && freeList >= 2){
-			return;     // valid
-		}
-		else
-		{
+		//If the SuperBlock was created correctly it returns, Otherwise
+		//it formats with 64 since that is the assumed default.
+		if (totalInodes > 0 && freeList >= 2 && totalBlocks == numBlocks){}
+		else{
 			totalBlocks = numBlocks;
-			format(defaultInodeBlocks);
+			format(64);
 		}
 	}
 
-	/** Sync
-	 * The Sync method brings the physical SuperBlock contents (at block zero on disk) in line with any updates
-	 * performed to the SuperBlock class instance. Sync will write back to disk the total number of blocks, the total
-	 * number of inodes, and the free list.
-	 */
-	public void sync ()
-	{
-		byte[] tempData = new byte[Disk.blockSize];
-		SysLib.int2bytes(freeList, tempData, freeListLocation);
-		SysLib.int2bytes(totalBlocks, tempData, totalBlockLocation);
-		SysLib.int2bytes(totalInodes, tempData, totalInodeLocation);
+	//Syncs the SuperBlock variables with the disk
+	public void sync (){
+		//Creates an empty byte array to be written to disk
+		byte[] temp = new byte[blockSize];
 
-		SysLib.rawwrite(0, tempData);
+		//Syncs the SuperBlock variables using the array
+		SysLib.int2bytes(freeList, temp, 8);
+		SysLib.int2bytes(totalInodes, temp, 4);
+		SysLib.int2bytes(totalBlocks, temp, 0);
+
+		//Writes the array to disk
+		SysLib.rawwrite(0, temp);
 	}
 
-	/** Next Free Block
-	 * The nextFreeBlock method returns the first free block from the free list. The free block is the top block from
-	 * the free queue and is returned as an integer value. If there is any error (absence of free blocks) -1 is returned
-	 * to notify the user the operation failed.
-	 * @return
-	 */
-	public int nextFreeBlock()
-	{
-		if (freeList > 0 && freeList < totalBlocks)
-		{
-			byte[] tempData = new byte[Disk.blockSize];
-			SysLib.rawread(freeList, tempData);
 
-			int temp = freeList;
+	public int nextBlock(){
+		//If the freeList is still within the bounds we can
+		//get the new ID for the next block
+		if (freeList > 0 && freeList < totalBlocks){
 
-			// update next free block
-			freeList = SysLib.bytes2int(tempData, 0);
+			//Creates temp array
+			byte[] tempArray = new byte[blockSize];
+			//Reads data
+			SysLib.rawread(freeList, tempArray);
 
-			// return block location
-			return temp;
+			//Creates temp variable so that freeList can be updated
+			int tempList = freeList;
+
+			// Updates the freeList
+			freeList = SysLib.bytes2int(tempArray, 0);
+
+			//Returns the Block info
+			return tempList;
 		}
-
-		return -1; //invalid freeList state
+		//returns -1 if failed
+		return -1;
 	}
 
-	/** Return Block
-	 * The returnBlock method attempts to add a newly freed block back to the free list. The newly freed block is added
-	 * to the end of the free block queue which operates as FIFO. If the freed block does not conform to the actual disk
-	 * parameters held in SuperBlock, the operation fails and returns false.
-	 * @param blockNumber
-	 * @return
-	 */
-	public boolean returnBlock(int blockNumber)
-	{
-		if (blockNumber > 0 && blockNumber < totalBlocks)
-		{
-			int nextFree = freeList;
-			int temp = 0;
+	//Attempts to return block to freeList based on ID given
+	public boolean returnBlock(int blockNumber){
+		//Only runs if block is within range
+		if (blockNumber > 0 && blockNumber < totalBlocks){
+			//newBlock is the block being added
+			byte [] newBlock = new byte[blockSize];
 
-			byte [] next = new byte[Disk.blockSize];
-
-			byte [] newBlock = new byte[Disk.blockSize];
-
-
-			//erase block
-			for(int i = 0; i < Disk.blockSize; i++)
-			{
-				newBlock[i] = 0;
-			}
-
-			SysLib.int2bytes(-1, newBlock, 0);
-
-			while (nextFree != -1)
-			{
-				SysLib.rawread(nextFree, next);
-
-				temp = SysLib.bytes2int(next, 0);
-
-				if (temp == -1)
-				{
-					// set next free
-					SysLib.int2bytes(blockNumber, next, 0);
-					SysLib.rawwrite(nextFree, next);
-					SysLib.rawwrite(blockNumber, newBlock);
-
-					return true;    //operation complete
-				}
-
-				nextFree = temp;
-			}
+			//updates the freeList with the newBlock and then writes the
+			//block and returns true
+			SysLib.int2bytes(freeList, newBlock, 0);
+			freeList = blockNumber;
+			SysLib.rawwrite(blockNumber, newBlock);
+			return true;
 		}
-
-		return false;   // invalid block returned
+		//If it didn't work it returns false
+		return false;
 	}
 
-	/** Format
-	 * The public format method cleans the disk of all data and resets the correct structure if the SuperBlock detects
-	 * an illegal state during initialization of an instance. All instance variables of SuperBlock are cleared to
-	 * default values and written back to the newly cleared disk.
-	 * @param numberOfFiles
-	 */
-    public void format (int numberOfFiles){
-
-		if (numberOfFiles < 0)
-		{
-			numberOfFiles = defaultInodeBlocks;
-		}
-
+	//this makes sure the superblock matches the format of the disk
+  public void format (int numberOfFiles){
+		//updates the totalInodes based on the amount of files
 		totalInodes = numberOfFiles;
-		inodeBlocks = totalInodes;
-		Inode dummy = null;
 
-		for (int i = 0; i < totalInodes; i++)
-		{
-			dummy = new Inode();
-			dummy.flag = 0;
-			dummy.toDisk((short) i);
+		//Sets all these Inodes to disks using the default constructor
+		for (short i = 0; i < totalInodes; i++){
+			Inode temp = new Inode();
+			temp.toDisk(i);
 		}
 
-		freeList = (totalInodes / 16) + 2;
+		//updates freeList to be the correct number
+		freeList = 2 + (totalInodes / 16);
 
-		byte [] newEmpty = null;    // new dummy block
+		//Creates new byte array that will be used to format
+		byte[] tempArray = new byte[blockSize];
 
-		for (int i = freeList; i < defaultBlocks - 1; i++)
-		{
-			newEmpty = new byte [Disk.blockSize];
-
-			//erase
-			for (int j = 0; j < Disk.blockSize; j++)
-			{
-				newEmpty[j] = 0;
-			}
-
-			SysLib.int2bytes(i+1, newEmpty, 0);
-			SysLib.rawwrite(i, newEmpty);
+		//runs through the freeList blocks and writes to the disk
+		for (int i = freeList; i < 1000 - 1; i++){
+			tempArray = new byte[blockSize];
+			SysLib.int2bytes(i + 1, tempArray, 0);
+			SysLib.rawwrite(i, tempArray);
 		}
 
-		newEmpty = new byte[Disk.blockSize];
+		//makes tempArray empty again
+		tempArray = new byte[blockSize];
 
-		//erase
-		for (int j = 0; j < Disk.blockSize; j++)
-		{
-			newEmpty[j] = 0;
-		}
+		//resets all of SuperBlocks variables
+		SysLib.int2bytes(totalBlocks, tempArray, 0);
+		SysLib.int2bytes(totalInodes, tempArray, 4);
+		SysLib.int2bytes(freeList, tempArray, 8);
 
-		SysLib.int2bytes(-1, newEmpty, 0);
-		SysLib.rawwrite(defaultBlocks - 1, newEmpty);
-		byte[] replacementSuper = new byte[Disk.blockSize];
-
-		// copy back all components
-		SysLib.int2bytes(totalBlocks, replacementSuper, totalBlockLocation);
-		SysLib.int2bytes(totalInodes, replacementSuper, totalInodeLocation);
-		SysLib.int2bytes(freeList, replacementSuper, freeListLocation);
-
-		// write new super
-		SysLib.rawwrite(0, replacementSuper);
-
+		//Writes the new SuperBlock to the disk
+		SysLib.rawwrite(0, tempArray);
     }
 }

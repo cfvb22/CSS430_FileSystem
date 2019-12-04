@@ -2,12 +2,12 @@
  * @author Camila Valdebenito
  * @author Connor Riley Shabro
  * @author Jeffrey Murray Jr
- * 
+ *
  * PURPOSE
- * Performs all of the operations on disk. 
+ * Performs all of the operations on disk.
  * Interface for users, providing a list of operations they can use
  * Called by SysLib interface -> Kernel handles request -> FileSystem executes
- * 
+ *
  * USERS CAN
  * 	format
  * 	open
@@ -16,14 +16,14 @@
  * 	delete
  * 	seek
  * 	close
- * 
+ *
  */
 public class FileSystem {
-	
+
     private SuperBlock superblock;
     private Directory directory;
     private FileTable filetable;
-    
+
 	 //---------------------- FileSystem( int ) ---------------------
     /**
 	 *! Default Constructor
@@ -33,10 +33,10 @@ public class FileSystem {
     public FileSystem (int blocks)
     {
     	superblock = new SuperBlock(blocks);
-    	
-    	directory = new Directory(superblock.inodeBlocks);
+
+    	directory = new Directory(superblock.totalInodes);
     	filetable = new FileTable(directory);
-    	
+
     	// read root
     	FileTableEntry entry = open( "/", "r");
     	int size = fsize( entry );
@@ -51,8 +51,8 @@ public class FileSystem {
     }
 
 	 //---------------------- int sync( ) ---------------------
-	/** 
-	 * Syncs the file system back to the physical disk. 
+	/**
+	 * Syncs the file system back to the physical disk.
 	 * Write the directory info to the disk in byte form in the root directory
 	 * @see SuperBlock.java
 	 */
@@ -72,7 +72,7 @@ public class FileSystem {
 	 //---------------------- int format( int ) ---------------------
 	/**
 	 * Full format of the disk, erases all the content on the disk.
-	 * Reinitalizes the superblock, directory, and file tables. 
+	 * Reinitalizes the superblock, directory, and file tables.
 	 *! This operation is not reversible
 	 * @param files amount of files being formatted
 	 * @return success always
@@ -81,14 +81,14 @@ public class FileSystem {
         // format superblock for number of files
     	superblock.format(files);
         // New directory, and register root "/"
-    	directory = new Directory(superblock.inodeBlocks);
+    	directory = new Directory(superblock.totalInodes);
         // New File Table with new directory
     	filetable = new FileTable(directory);
         return true;
 	}
-	
+
 	 //---------------------- int open( FileTableEntry, String ) ---------------------
-	/** 
+	/**
 	 * @param filename name of file opening
 	 * @param mode purpose of open
 	 * @return the file table entry opened
@@ -102,15 +102,15 @@ public class FileSystem {
     	if (mode == "w")
     	{
     		// if so, make sure all blocks are unallocated
-    		if ( !deallocEntry( ftEntry ))
+    		if (deallocEntry( ftEntry ) == false)
     		{
     			return null;
     		}
-    	} 
+    	}
     	return ftEntry;
     }
 	 //---------------------- int close( FileTableEntry ) ---------------------
-	/** 
+	/**
 	 * Closes the file the given file table entry.
 	 * @param entry table entry to close
 	 * @return freed status or true
@@ -127,7 +127,7 @@ public class FileSystem {
 			return true;
 		}
 	}
-	
+
 	//---------------------- int read( FileTableEntry, byte[] ) ---------------------
 	/**
 	 * Checks target block to make sure it is valid to read from
@@ -136,15 +136,15 @@ public class FileSystem {
 	 * @return amount of data read
 	 */
 	public int read(FileTableEntry entry, byte[] buffer)
-	{    	
+	{
         //check write or append status
 		if ((entry.mode == "w") || (entry.mode == "a"))
 			return -1;
 
         int size  = buffer.length;   //set total size of data to read
         int bytesRead = 0;            //track data read
-        int bytesLeft = 0;           
-        
+        int bytesLeft = 0;
+
         synchronized(entry)
         {
         	while (entry.seekPtr < fsize(entry) && (size > 0))
@@ -152,16 +152,16 @@ public class FileSystem {
         		int currentBlock = entry.inode.fetchTarget(entry.seekPtr);
         		if (currentBlock == -1)
         			break;
-	
+
 				// read current data
 				byte[] data = new byte[Disk.blockSize];
         		SysLib.rawread(currentBlock, data);
-				
+
 				// intialize iterative values
         		int dataOffset = entry.seekPtr % Disk.blockSize;
         		int blocksLeft = Disk.blockSize - bytesLeft;
         		int fileLeft = fsize(entry) - entry.seekPtr;
-				
+
 				// Assign blocks left to read
         		if (blocksLeft < fileLeft)
 					bytesLeft = blocksLeft;
@@ -180,9 +180,9 @@ public class FileSystem {
         	return bytesRead;
         }
 	}
-	
+
 	//---------------------- int write( FileTableEntry, byte[] ) ---------------------
-	/** 
+	/**
 	 * Writes the contents of buffer to the file indicated by entry.
 	 * Increments the seek pointer by the number of bytes to have been written.
 	 * @param entry file table entry writing to
@@ -256,14 +256,14 @@ public class FileSystem {
 	 */
 	private int assignLocation(FileTableEntry ftEnt)
 	{
-		short newLocation = (short) superblock.nextFreeBlock();
+		short newLocation = (short) superblock.nextBlock();
 
 		int testPtr = ftEnt.inode.getFreeBlockIndex(ftEnt.seekPtr, newLocation);
 
 		// error on write of nullptr
 		if (testPtr == -3)
 		{
-			short freeBlock = (short) this.superblock.nextFreeBlock();
+			short freeBlock = (short) this.superblock.nextBlock();
 
 			// indirect pointer is empty
 			if (!ftEnt.inode.setIndexBlock(freeBlock))
@@ -286,34 +286,34 @@ public class FileSystem {
 	private final int SEEK_SET = 0;
 	private final int SEEK_CUR = 1;
 	private final int SEEK_END = 2;
- 
+
 	// Updates the seek pointer corresponding to fd as follows:
 	// If whence is SEEK_SET (= 0), the file's seek pointer is set to offset bytes from the beginning of the file.
 	// If whence is SEEK_CUR (= 1), the file's seek pointer is set to its current value plus the offset. The offset can be positive or negative.
 	// If whence is SEEK_END (= 2), the file's seek pointer is set to the size of the file plus the offset. The offset can be positive or negative.
 	public synchronized int seek(FileTableEntry ftEnt, int offset, int whence)
-	{ 
+	{
 	   switch(whence)
 	   {
 		  // file's seek pointer is set to offset bytes from the beginning of the file
 		  case SEEK_SET:
 			 ftEnt.seekPtr = offset;
 			 break;
- 
+
 		  // file's seek pointer is set to its current value plus the offset
 		  case SEEK_CUR:
 			 ftEnt.seekPtr += offset;
 			 break;
- 
+
 		  // file's seek pointer is set to the size of the file plus the offset
 		  case SEEK_END:
 			 ftEnt.seekPtr = offset + fsize(ftEnt);
 			 break;
- 
+
 		  default:
 			 return -1;
 	   }
- 
+
 	   if(ftEnt.seekPtr < 0)
 	   {
 		  ftEnt.seekPtr = 0;
@@ -321,13 +321,13 @@ public class FileSystem {
 	   else if (ftEnt.seekPtr > fsize(ftEnt))
 	   {
 		  ftEnt.seekPtr = fsize(ftEnt);
- 
+
 	   }
- 
+
 	   return ftEnt.seekPtr;
  }
  	 //---------------------- boolean deallocEntry( FileTableEntry ) ---------------------
-	/** 
+	/**
 	 * Iterates through direct and indirect of given FileTableEntry
 	 * Checks all values are valid, sets them to invalid, then returns them to superblock.
 	 * @param ftEnt entry deallocating
@@ -336,7 +336,6 @@ public class FileSystem {
     private boolean deallocEntry(FileTableEntry ftEnt){
     	if (ftEnt.inode.count != 1)
 		{
-			SysLib.cerr("Null Pointer");
 			return false;
 		}
 
@@ -349,7 +348,7 @@ public class FileSystem {
 			}
 		}
 
-		byte [] data = ftEnt.inode.freeIndirect();
+		byte[] data = ftEnt.inode.freeIndirect();
 
 		if (data != null)
 		{
