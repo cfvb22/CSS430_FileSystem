@@ -33,21 +33,20 @@ public class FileSystem {
     public FileSystem (int blocks)
     {
     	superblock = new SuperBlock(blocks);
-
     	directory = new Directory(superblock.totalInodes);
     	filetable = new FileTable(directory);
 
     	// read root
     	FileTableEntry entry = open( "/", "r");
-    	int size = fsize( entry );
-    	if ( size > 0 )
+    	int size = fsize(entry);
+    	if (size > 0)
     	{
     		// read and convert to directory
     		byte[] data = new byte[size];
-    		read( entry, data );
+    		read(entry, data);
     		directory.bytes2directory(data);
     	}
-    	close( entry );
+    	close(entry);
     }
 
 	 //---------------------- int sync( ) ---------------------
