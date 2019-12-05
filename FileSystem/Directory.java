@@ -72,7 +72,7 @@ public class Directory {
     //--------------------------- directory2bytes( ) --------------------------
     /**
      * Converts and return Directory information into a plain byte array
-     * @return byte[]
+     * @return byte[] which represents the directory
      */
     public byte[] directory2bytes( )
     {
@@ -96,9 +96,10 @@ public class Directory {
 
     //--------------------------- ialloc( String filename ) --------------------------
     /** 
+     * Allocates a new iNode number for the given filename
      *
      * @param filename
-     * @return
+     * @return the iNode number that corresponds to filename
      */
     public short ialloc( String filename )
     {
@@ -118,10 +119,11 @@ public class Directory {
     }
 
     //--------------------------- ifree( short iNumber ) --------------------------
-    /** ifree
-     *
-     * @param iNumber
-     * @return
+    /**
+     *  Frees the file with the given iNumber
+     * 
+     * @param iNumber number
+     * @return boolean variable to determine the success of the operation
      */
     public boolean ifree( short iNumber ) {
         if(iNumber < maxChars && fsize[iNumber] > 0){      //If number is valid
@@ -134,10 +136,11 @@ public class Directory {
 
     
     //--------------------------- namei( String filename ) --------------------------
-    /** namei
-     *
+    /** 
+     * Returns the iNode number that corresponds to the given filename
+     * 
      * @param filename
-     * @return
+     * @return the iNode number that corresponds to the given filename
      */
     public short namei( String filename )
     {
@@ -154,6 +157,7 @@ public class Directory {
 
     //--------------------------- printDir() --------------------------
     /** Print Dir
+     * Helper method that prints out the directory
      * TESTING ONLY
      */
     private void printDir(){
