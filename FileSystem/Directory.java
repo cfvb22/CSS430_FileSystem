@@ -20,8 +20,8 @@
  */
 
 public class Directory {
-    private static int maxChars = 30; // max characters of each file name
-    private static int MAX_BYTES = 60;
+    private static int maxChars = 30;   // max characters of each file name
+    private static int MAX_BYTES = 60;  // 30 characters * 2 bytes 
     private static int ALLOC_BYTE = 64;
 
     // Directory entries
@@ -37,7 +37,7 @@ public class Directory {
     public Directory( int ofSize )
     { // directory constructor
         fsize = new int[ofSize];     // maxInumber = max files
-        for ( int i = 0; i < ofSize; i++ )
+        for ( int i = 0; i < ofSize; i++ ) 
             fsize[i] = 0;                 // all file size initialized to 0
         directorySize = ofSize;
         fnames = new char[ofSize][maxChars];
@@ -75,14 +75,18 @@ public class Directory {
      */
     public byte[] directory2bytes( )
     {
+        // allocates disk block for directory 
         byte [] dir = new byte[ALLOC_BYTE * directorySize];
         int offset = 0;
 
+        // coverts the fsize arrat into bytes
         for (int i = 0; i < directorySize; i++)
         {
             SysLib.int2bytes(fsize[i], dir, offset);
             offset += 4;
         }
+        
+        // converts the fnames array into bytes 
         for (int i = 0; i < directorySize; i++)
         {
             String temp = new String(fnames[i], 0, fsize[i]);
@@ -103,17 +107,23 @@ public class Directory {
     public short ialloc( String filename )
     {
         // filename is the one of a file to be created.
+        // allocates a new iNode nymber for the given filename
         for (short i = 0; i < directorySize; i++)
         {
+            // finds the next free iNumber (fsize index)
             if (fsize[i] == 0)
             {
-                // allocates a new inode number for this filename
+                // determines the filename length to avoid invalid access positions
                 int file = filename.length() > maxChars ? maxChars : filename.length();
+                // assigns the computed filename length to the iNumber
                 fsize[i] = file;
+                // puts the filename in the fnames array
                 filename.getChars(0, fsize[i], fnames[i], 0);
+                // returns the index of file (aka the iNumber of the given file)
                 return i;
             }
         }
+        // no free iNumbers left in the directory
         return -1;
     }
 
@@ -124,12 +134,20 @@ public class Directory {
      * @param iNumber number
      * @return boolean variable to determine the success of the operation
      */
-    public boolean ifree( short iNumber ) {
-        if(iNumber < maxChars && fsize[iNumber] > 0){      //If number is valid
-            fsize[iNumber] = 0;                            //Mark to be deleted
-            return true;                                 //File was found
-        } else {
-            return false;                                 //File not found
+    public boolean ifree( short iNumber ) 
+    {
+         // checks that given iNumber is valid
+        if(iNumber < maxChars && fsize[iNumber] > 0)     
+        {   
+            // Mark to be deleted
+            fsize[iNumber] = 0;                          
+            // File was found
+            return true;                                  
+        } 
+        else 
+        {
+            // File not found
+            return false;                                 
         }
     }
 
@@ -143,14 +161,21 @@ public class Directory {
      */
     public short namei( String filename )
     {
-        for (short i = 0; i < directorySize; i++){
-            if (filename.length() == fsize[i]){
+        // traverses the fsize array looking for the given filename
+        for (short i = 0; i < directorySize; i++)
+        {
+            if (filename.length() == fsize[i])
+            {
                 String temp = new String(fnames[i], 0, fsize[i]);
-                if(filename.equals(temp)){
+                // given file was found
+                if(filename.equals(temp))
+                {   
+                    // return iNode number of the given filename
                     return i;
                 }
             }
         }
+        // file not found
         return -1;
     }
 
@@ -159,10 +184,13 @@ public class Directory {
      * Helper method that prints out the directory
      * TESTING ONLY
      */
-    private void printDir(){
-        for (int i = 0; i < directorySize; i++){
+    private void printDir()
+    {
+        for (int i = 0; i < directorySize; i++)
+        {
             SysLib.cout(i + ":  " + fsize[i] + " bytes - ");
-            for (int j = 0; j < maxChars; j++){
+            for (int j = 0; j < maxChars; j++)
+            {
                 SysLib.cout(fnames[i][j] + " ");
             }
             SysLib.cout("\n");
