@@ -30,6 +30,7 @@ public class Directory {
     private int directorySize;  // size of directory
     private char fnames[][];    // each element stores a different file name.
 
+    //---------------------- Directory( int ofSize ) ---------------------
     /** Default Constructor
      *
      * @param ofSize int
@@ -46,6 +47,7 @@ public class Directory {
         root.getChars( 0, fsize[0], fnames[0], 0 ); // fnames[0] includes "/"
     }
 
+    //---------------------- bytes2directory( byte data[] ) ---------------------
     /** 
      * Initializes the Directory instance with this data[]
      * Assumes data[] received directory information from disk
@@ -67,6 +69,7 @@ public class Directory {
         }
     }
 
+    //--------------------------- directory2bytes( ) --------------------------
     /**
      * Converts and return Directory information into a plain byte array
      * @return byte[]
@@ -91,6 +94,7 @@ public class Directory {
         return dir;
     }
 
+    //--------------------------- ialloc( String filename ) --------------------------
     /** 
      *
      * @param filename
@@ -113,6 +117,7 @@ public class Directory {
         return -1;
     }
 
+    //--------------------------- ifree( short iNumber ) --------------------------
     /** ifree
      *
      * @param iNumber
@@ -127,6 +132,8 @@ public class Directory {
         }
     }
 
+    
+    //--------------------------- namei( String filename ) --------------------------
     /** namei
      *
      * @param filename
@@ -145,6 +152,7 @@ public class Directory {
         return -1;
     }
 
+    //--------------------------- printDir() --------------------------
     /** Print Dir
      * TESTING ONLY
      */
