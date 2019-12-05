@@ -46,7 +46,7 @@ public class Directory {
         root.getChars( 0, fsize[0], fnames[0], 0 ); // fnames[0] includes "/"
     }
 
-    //---------------------- bytes2directory( byte data[] ) ---------------------
+    //---------------------- void bytes2directory( byte data[] ) ---------------------
     /** 
      * Initializes the Directory instance with this data[]
      * Assumes data[] received directory information from disk
@@ -68,7 +68,7 @@ public class Directory {
         }
     }
 
-    //--------------------------- directory2bytes( ) --------------------------
+    //--------------------------- byte[] directory2bytes( ) --------------------------
     /**
      * Converts and return Directory information into a plain byte array
      * @return byte[] which represents the directory
@@ -97,7 +97,7 @@ public class Directory {
         return dir;
     }
 
-    //--------------------------- ialloc( String filename ) --------------------------
+    //--------------------------- short ialloc( String filename ) --------------------------
     /** 
      * Allocates a new iNode number for the given filename
      *
@@ -127,7 +127,7 @@ public class Directory {
         return -1;
     }
 
-    //--------------------------- ifree( short iNumber ) --------------------------
+    //--------------------------- boolean ifree( short iNumber ) --------------------------
     /**
      *  Frees the file with the given iNumber
      * 
@@ -152,7 +152,7 @@ public class Directory {
     }
 
     
-    //--------------------------- namei( String filename ) --------------------------
+    //--------------------------- short namei( String filename ) --------------------------
     /** 
      * Returns the iNode number that corresponds to the given filename
      * 
