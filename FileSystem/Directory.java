@@ -6,7 +6,6 @@
  * PURPOSE
  * Contain and manage files with two arrays (fsize and fname)
  * 
- * TODO @cami plz add comments
  * 
  * The main purpose of directory is to contain and manage the “files” that are being dealt with. Directory accomplishes
  * this by means of creating two arrays fsize and fname.
